@@ -141,12 +141,14 @@ export abstract class LotteryAutomation {
     // Inject JavaScript to hide automation markers
     await this.context.addInitScript(() => {
       // Hide the webdriver property that sites check to detect automation
-      Object.defineProperty(navigator, 'webdriver', {
+      // @ts-expect-error - navigator is available in browser context
+      Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
         get: () => false
       });
 
       // Mock browser plugins to look more realistic
-      Object.defineProperty(navigator, 'plugins', {
+      // @ts-expect-error - navigator is available in browser context
+      Object.defineProperty(Object.getPrototypeOf(navigator), 'plugins', {
         get: () => [
           {
             0: { type: "application/x-google-chrome-pdf" },
@@ -166,22 +168,16 @@ export abstract class LotteryAutomation {
       });
 
       // Set realistic language preferences
-      Object.defineProperty(navigator, 'languages', {
+      // @ts-expect-error - navigator is available in browser context
+      Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
         get: () => ['en-US', 'en']
       });
 
       // Mock the Chrome runtime object
-      (window as any).chrome = {
+      // @ts-expect-error - window is available in browser context
+      window.chrome = {
         runtime: {}
       };
-
-      // Override permissions API to return realistic responses
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters: any) => (
-        parameters.name === 'notifications' ?
-          Promise.resolve({ state: Notification.permission } as PermissionStatus) :
-          originalQuery(parameters)
-      );
     });
   }
 
@@ -267,6 +263,7 @@ export class SocialToasterAutomation extends LotteryAutomation {
 
       // Simulate human reading and scrolling behavior
       await page.evaluate(() => {
+        // @ts-expect-error - window is available in browser context
         window.scrollBy(0, Math.floor(Math.random() * 300) + 100);
       });
       await randomDelay(500, 1000);
@@ -381,6 +378,7 @@ export class BroadwayDirectAutomation extends LotteryAutomation {
 
       // Simulate human reading and scrolling behavior
       await page.evaluate(() => {
+        // @ts-expect-error - window is available in browser context
         window.scrollBy(0, Math.floor(Math.random() * 300) + 100);
       });
       await randomDelay(500, 1000);

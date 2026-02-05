@@ -52,7 +52,7 @@ Return ONLY a valid JSON object with these fields. If a field is not mentioned, 
   /**
    * Normalize and validate the parsed preferences
    */
-  private normalizePreferences(parsed: any): ParsedPreferences {
+  private normalizePreferences(parsed: Record<string, unknown>): ParsedPreferences {
     const preferences: ParsedPreferences = {};
 
     if (parsed.genres && Array.isArray(parsed.genres)) {
@@ -63,17 +63,19 @@ Return ONLY a valid JSON object with these fields. If a field is not mentioned, 
       preferences.showNames = parsed.showNames;
     }
 
-    if (parsed.priceRange) {
+    if (parsed.priceRange && typeof parsed.priceRange === 'object') {
+      const priceRange = parsed.priceRange as Record<string, number>;
       preferences.priceRange = {
-        min: parsed.priceRange.min,
-        max: parsed.priceRange.max
+        min: priceRange.min,
+        max: priceRange.max
       };
     }
 
-    if (parsed.dateRange) {
+    if (parsed.dateRange && typeof parsed.dateRange === 'object') {
+      const dateRange = parsed.dateRange as Record<string, string>;
       preferences.dateRange = {
-        start: parsed.dateRange.start ? new Date(parsed.dateRange.start) : undefined,
-        end: parsed.dateRange.end ? new Date(parsed.dateRange.end) : undefined
+        start: dateRange.start ? new Date(dateRange.start) : undefined,
+        end: dateRange.end ? new Date(dateRange.end) : undefined
       };
     }
 

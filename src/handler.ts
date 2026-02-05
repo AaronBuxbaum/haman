@@ -7,7 +7,7 @@ dotenv.config();
 /**
  * Lambda handler for scheduled lottery applications
  */
-export const handler = async (event: any, context: any) => {
+export const handler = async (event: unknown) => {
   console.log('Starting scheduled lottery application...');
   console.log('Event:', JSON.stringify(event, null, 2));
 
