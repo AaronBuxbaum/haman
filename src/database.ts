@@ -10,10 +10,12 @@ export class UserDatabase {
   /**
    * Create a new user
    */
-  createUser(email: string, preferences: string): User {
+  createUser(email: string, preferences: string, firstName?: string, lastName?: string): User {
     const user: User = {
       id: this.generateId(),
       email,
+      firstName,
+      lastName,
       preferences,
       createdAt: new Date(),
       updatedAt: new Date()

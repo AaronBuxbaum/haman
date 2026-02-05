@@ -1,6 +1,8 @@
 export interface User {
   id: string;
   email: string;
+  firstName?: string; // Optional: user's first name for lotteries that require it
+  lastName?: string; // Optional: user's last name for lotteries that require it
   preferences: string; // Free-text description of what shows they want
   parsedPreferences?: ParsedPreferences;
   createdAt: Date;

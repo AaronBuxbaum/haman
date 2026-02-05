@@ -399,7 +399,8 @@ export class BroadwayDirectAutomation extends LotteryAutomation {
         if (await page.locator(firstNameSelector).first().isVisible({ timeout: 2000 })) {
           await page.click(firstNameSelector);
           await randomDelay(200, 400);
-          await page.type(firstNameSelector, 'John', { delay: Math.random() * 100 + 50 });
+          const firstName = user.firstName || 'John'; // Use user's name or default
+          await page.type(firstNameSelector, firstName, { delay: Math.random() * 100 + 50 });
           await randomDelay(300, 600);
         }
       } catch (e) {
@@ -412,7 +413,8 @@ export class BroadwayDirectAutomation extends LotteryAutomation {
         if (await page.locator(lastNameSelector).first().isVisible({ timeout: 2000 })) {
           await page.click(lastNameSelector);
           await randomDelay(200, 400);
-          await page.type(lastNameSelector, 'Doe', { delay: Math.random() * 100 + 50 });
+          const lastName = user.lastName || 'Doe'; // Use user's name or default
+          await page.type(lastNameSelector, lastName, { delay: Math.random() * 100 + 50 });
           await randomDelay(300, 600);
         }
       } catch (e) {

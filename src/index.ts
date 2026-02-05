@@ -19,7 +19,9 @@ async function main() {
   console.log('Creating example user...');
   const user = await service.createUser(
     'user@example.com',
-    'I love musicals, especially Hamilton and Wicked. I want to see any musical on Broadway.'
+    'I love musicals, especially Hamilton and Wicked. I want to see any musical on Broadway.',
+    'Jane',
+    'Smith'
   );
 
   console.log('User created:', user);

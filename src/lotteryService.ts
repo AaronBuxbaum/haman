@@ -19,8 +19,8 @@ export class LotteryService {
   /**
    * Create a new user and parse their preferences
    */
-  async createUser(email: string, preferencesText: string): Promise<User> {
-    const user = this.userDb.createUser(email, preferencesText);
+  async createUser(email: string, preferencesText: string, firstName?: string, lastName?: string): Promise<User> {
+    const user = this.userDb.createUser(email, preferencesText, firstName, lastName);
 
     try {
       const parsedPreferences = await this.preferenceParser.parsePreferences(preferencesText);
