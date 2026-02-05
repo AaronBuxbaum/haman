@@ -1,7 +1,7 @@
 # GitHub Copilot Instructions for Haman Repository
 
 ## Project Overview
-Haman is a repository focused on [describe the purpose of the repository based on its context].
+Haman is a repository by AaronBuxbaum. This file provides guidelines for GitHub Copilot to assist effectively with development tasks in this repository.
 
 ## General Guidelines
 
