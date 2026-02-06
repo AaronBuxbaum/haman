@@ -19,6 +19,10 @@ const openaiApiKeyInput = document.getElementById('openaiApiKey');
 const defaultEmailInput = document.getElementById('defaultEmail');
 const defaultFirstNameInput = document.getElementById('defaultFirstName');
 const defaultLastNameInput = document.getElementById('defaultLastName');
+const dateOfBirthInput = document.getElementById('dateOfBirth');
+const ticketQuantitySelect = document.getElementById('ticketQuantity');
+const zipCodeInput = document.getElementById('zipCode');
+const countrySelect = document.getElementById('country');
 const autoApplyEnabledInput = document.getElementById('autoApplyEnabled');
 const autoApplyTimeInput = document.getElementById('autoApplyTime');
 
@@ -47,6 +51,10 @@ async function loadSettings() {
     defaultEmailInput.value = settings.defaultEmail || '';
     defaultFirstNameInput.value = settings.defaultFirstName || '';
     defaultLastNameInput.value = settings.defaultLastName || '';
+    dateOfBirthInput.value = settings.dateOfBirth || '';
+    ticketQuantitySelect.value = settings.ticketQuantity || '2';
+    zipCodeInput.value = settings.zipCode || '';
+    countrySelect.value = settings.country || 'US';
     autoApplyEnabledInput.checked = settings.autoApplyEnabled || false;
     autoApplyTimeInput.value = settings.autoApplyTime || '09:00';
   } catch (error) {
@@ -104,6 +112,10 @@ async function handleSubmit(event) {
     defaultEmail: defaultEmailInput.value.trim(),
     defaultFirstName: defaultFirstNameInput.value.trim(),
     defaultLastName: defaultLastNameInput.value.trim(),
+    dateOfBirth: dateOfBirthInput.value,
+    ticketQuantity: ticketQuantitySelect.value,
+    zipCode: zipCodeInput.value.trim(),
+    country: countrySelect.value,
     autoApplyEnabled: autoApplyEnabledInput.checked,
     autoApplyTime: autoApplyTimeInput.value,
   };
