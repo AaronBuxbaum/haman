@@ -189,24 +189,13 @@ Shows can be added/removed by updating `src/showCatalog.ts`.
 - Another major lottery platform
 - Examples: Book of Mormon, Chicago, Moulin Rouge
 
-## Serverless Configuration
-
-The system uses AWS Lambda with scheduled triggers:
-
-```yaml
-# Daily at 9 AM EST
-- schedule:
-    rate: cron(0 14 * * ? *)
-
-# Daily at 11 AM EST (backup)
-- schedule:
-    rate: cron(0 16 * * ? *)
-```
-
 ## Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `OPENAI_API_KEY`: Your OpenAI API key (optional - system works without it)
 - `NODE_ENV`: Environment (production/development)
+- `KV_URL`: Vercel KV connection URL (auto-configured when using Vercel KV)
+- `KV_REST_API_URL`: Vercel KV REST API URL (auto-configured)
+- `KV_REST_API_TOKEN`: Vercel KV auth token (auto-configured)
 
 ## Future Enhancements
 

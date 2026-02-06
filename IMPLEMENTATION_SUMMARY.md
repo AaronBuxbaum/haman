@@ -2,7 +2,7 @@
 
 ## Overview
 
-This implementation adds a complete web-based management interface for the Haman Broadway lottery automation system, migrating from AWS Lambda to Vercel with Next.js while maintaining backward compatibility.
+This implementation adds a complete web-based management interface for the Haman Broadway lottery automation system, migrating from AWS Lambda to Vercel with Next.js.
 
 ## Requirements Completed
 
@@ -151,13 +151,6 @@ This implementation adds a complete web-based management interface for the Haman
 
 ## Architecture Changes
 
-### Before (AWS Lambda)
-```
-AWS Lambda → Serverless Framework
-└── Scheduled functions
-    └── Apply to lotteries automatically
-```
-
 ### After (Vercel + Next.js)
 ```
 Vercel Edge Network
@@ -175,8 +168,6 @@ Vercel Edge Network
     ├── User overrides
     └── Platform credentials
 ```
-
-**Backward Compatibility**: Original AWS Lambda handler (`src/handler.ts`) preserved for scheduled runs if needed.
 
 ## New Files Created
 

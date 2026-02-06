@@ -337,12 +337,6 @@ interface Show {
 - `getPlatformCredentials()` - Retrieve credentials
 - `getDecryptedPassword()` - Decrypt stored password
 
-### 7. Legacy Lambda Handler (`src/handler.ts`)
-
-**Purpose**: AWS Lambda entry point (legacy, kept for backward compatibility).
-
-**Note**: With the new Vercel-based architecture, this is no longer the primary entry point. The Next.js API routes handle all web requests.
-
 ## Data Flow
 
 ### Web Interface User Flow
@@ -373,23 +367,6 @@ interface Show {
       → POST /api/apply-lotteries
       → Backend processes each matching show
       → Results displayed to user
-```
-
-### Legacy Flow (Command Line/Scheduled)
-```
-1. Lambda triggered by schedule (or manual invocation)
-2. Handler calls LotteryService.applyForAllUsers()
-3. For each user:
-   a. Get matching shows using PreferenceParser.matchesPreferences()
-   b. Create LotteryAutomation for each platform
-   c. Initialize browser with anti-detection
-   d. For each show:
-      - Navigate to lottery page
-      - Fill form with human-like behavior
-      - Submit entry
-      - Capture result
-   e. Cleanup browser resources
-4. Return aggregated results
 ```
 
 ### Override Decision Flow
@@ -449,63 +426,56 @@ Broadway lottery sites use Cloudflare and other anti-bot systems to prevent auto
    - Security headers (Sec-Fetch-*)
    - Connection keep-alive
 
-## Serverless Deployment
+## Vercel Deployment
 
-### AWS Lambda Configuration
+### Configuration
 
-**Runtime**: Node.js 20.x
-**Memory**: 1024 MB (needed for Playwright browser)
-**Timeout**: 300 seconds (5 minutes)
+**Platform**: Vercel Edge Network with Next.js 15
+**Runtime**: Node.js (serverless functions)
+**Memory**: Configurable per function
+**Timeout**: 60 seconds (default for serverless functions)
 
 **Environment Variables**:
-- `OPENAI_API_KEY`: OpenAI API key
+- `OPENAI_API_KEY`: OpenAI API key (optional)
 - `NODE_ENV`: Environment (production/development)
-
-### Scheduling
-
-**Primary Schedule**: Daily at 9 AM EST (14:00 UTC)
-- Most lotteries open around this time
-- Cron: `0 14 * * ? *`
-
-**Backup Schedule**: Daily at 11 AM EST (16:00 UTC)
-- Catches late-opening lotteries
-- Cron: `0 16 * * ? *`
+- `KV_URL`: Vercel KV connection URL (auto-configured)
+- `KV_REST_API_URL`: Vercel KV REST API URL (auto-configured)
+- `KV_REST_API_TOKEN`: Vercel KV auth token (auto-configured)
 
 ### Deployment
 
 ```bash
-npm run build
-serverless deploy
+npm run deploy
 ```
 
-This creates:
-- Lambda function with code
-- CloudWatch Events rules for scheduling
-- IAM roles and permissions
-- CloudWatch Logs groups
+This deploys to Vercel with:
+- Static pages (prerendered)
+- Serverless API routes
+- Edge network CDN
+- Automatic HTTPS
 
 ## Scalability Considerations
 
-### Current Limitations
+### Current Approach
 
-1. **In-Memory Database**: Won't persist between Lambda invocations
-2. **Sequential Processing**: Processes users one at a time
-3. **Single Region**: Runs only in us-east-1
+1. **Vercel KV Storage**: Persistent storage with in-memory fallback
+2. **Serverless Functions**: Each API route scales independently
+3. **Edge Network**: Global CDN distribution
 
 ### Production Enhancements
 
 1. **Database**
-   - Use DynamoDB for user storage
+   - Vercel KV is production-ready (Redis)
    - Add indexes for efficient queries
    - Implement user authentication
 
 2. **Parallel Processing**
    - Use Lambda concurrency
    - Process multiple users simultaneously
-   - Implement SQS queue for job management
+   - Background job processing
 
 3. **Monitoring**
-   - CloudWatch metrics and alarms
+   - Vercel Analytics
    - Success/failure tracking
    - Email notifications to users
 
@@ -569,25 +539,28 @@ This creates:
 ### Production Dependencies
 - `playwright`: Browser automation
 - `openai`: AI preference parsing
-- `aws-sdk`: AWS service integration
+- `@vercel/kv`: Vercel KV storage client
+- `next`: Next.js framework
+- `react`: React framework
+- `react-dom`: React DOM library
 - `dotenv`: Environment configuration
 
 ### Development Dependencies
 - `typescript`: Type safety
 - `jest`: Testing framework
 - `eslint`: Code linting
-- `serverless`: Deployment framework
+- `vercel`: Deployment CLI
 
 ## Performance Metrics
 
 ### Expected Performance
 - **Per User Processing**: 30-60 seconds (depends on number of matching shows)
-- **Cold Start**: 3-5 seconds (Lambda + Playwright initialization)
-- **Warm Start**: 1-2 seconds
-- **Cost**: ~$0.01 per 100 applications (Lambda + OpenAI API)
+- **API Route Cold Start**: < 1 second (Vercel serverless function)
+- **API Route Warm Start**: < 100ms
+- **Cost**: ~$0.01 per 100 applications (Vercel + OpenAI API)
 
 ### Optimization Opportunities
-1. Keep Lambda warm with CloudWatch Events
-2. Cache parsed preferences
-3. Reuse browser instances within single invocation
-4. Batch OpenAI API calls
+1. Cache parsed preferences in KV storage
+2. Reuse browser instances within single invocation
+3. Batch OpenAI API calls
+4. Use edge functions for faster response times
