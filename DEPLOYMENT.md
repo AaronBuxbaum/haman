@@ -66,6 +66,16 @@ Set these in the Vercel dashboard (Settings → Environment Variables):
    - Get one at https://platform.openai.com/api-keys
    - Value: `sk-...`
 
+### Playwright Browser Configuration
+
+The application uses **@sparticuz/chromium** for serverless browser automation, which is automatically configured for Vercel's serverless environment. No manual browser installation is required - the browser binary is bundled with the deployment.
+
+**Technical Details:**
+- Uses `playwright-core` instead of full `playwright` package to reduce bundle size
+- Uses `@sparticuz/chromium` for serverless-optimized Chromium binary
+- Configured with 1024MB memory for browser automation functions
+- 60-second timeout for scraping and lottery application operations
+
 ### Vercel KV Setup (Optional)
 
 For persistent storage of user overrides and credentials:
@@ -177,6 +187,11 @@ npm run dev
 
 **Error**: "OpenAI API error"
 - **Solution**: Check that `OPENAI_API_KEY` is set correctly in environment variables
+
+**Error**: "Executable doesn't exist" or Playwright browser errors
+- **Solution**: This should not occur with the current setup using `@sparticuz/chromium`
+- **If it persists**: Verify that `playwright-core` and `@sparticuz/chromium` are in `dependencies` (not `devDependencies`)
+- **For local development**: The serverless Chromium package works in both local and production environments
 
 ### Performance Issues
 

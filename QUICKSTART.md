@@ -247,12 +247,6 @@ npm install
 npm run build
 ```
 
-### Playwright browser issues
-Install Playwright browsers:
-```bash
-npx playwright install chromium
-```
-
 ### Lambda deployment fails
 - Check AWS credentials: `aws sts get-caller-identity`
 - Verify sufficient IAM permissions
