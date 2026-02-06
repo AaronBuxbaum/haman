@@ -44,10 +44,11 @@ Return ONLY a valid JSON object with these fields. If a field is not mentioned, 
       let jsonText = content.text.trim();
       
       // Remove markdown code block formatting if present
+      // Handle variations in whitespace and code block markers
       if (jsonText.startsWith('```json')) {
-        jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+        jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+        jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
 
       const parsed = JSON.parse(jsonText);
