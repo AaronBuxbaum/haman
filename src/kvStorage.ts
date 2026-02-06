@@ -1,7 +1,7 @@
-import { UserOverride, PlatformCredentials } from './types';
+import { UserOverride, PlatformCredentials, Show } from './types';
 
 /**
- * Vercel KV storage utilities for user overrides and credentials
+ * Vercel KV storage utilities for user overrides, credentials, and cached shows
  * Falls back to in-memory storage if KV is not configured
  */
 
@@ -22,6 +22,8 @@ try {
 
 const OVERRIDE_PREFIX = 'override:';
 const CREDENTIALS_PREFIX = 'credentials:';
+const SHOWS_CACHE_KEY = 'shows:cache';
+const SHOWS_TIMESTAMP_KEY = 'shows:timestamp';
 
 // Helper functions for storage abstraction
 async function getValue<T>(key: string): Promise<T | null> {
@@ -220,4 +222,52 @@ export async function getAllUserCredentials(userId: string): Promise<PlatformCre
   }
   
   return credentials;
+}
+
+/**
+ * Get cached shows from database
+ * Returns null if cache is empty or not available
+ */
+export async function getCachedShows(): Promise<{ shows: Show[]; timestamp: number } | null> {
+  try {
+    const shows = await getValue<Show[]>(SHOWS_CACHE_KEY);
+    const timestamp = await getValue<number>(SHOWS_TIMESTAMP_KEY);
+    
+    if (shows && timestamp) {
+      return { shows, timestamp };
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting cached shows:', error);
+    return null;
+  }
+}
+
+/**
+ * Set cached shows in database
+ */
+export async function setCachedShows(shows: Show[]): Promise<void> {
+  try {
+    const timestamp = Date.now();
+    await setValue(SHOWS_CACHE_KEY, shows);
+    await setValue(SHOWS_TIMESTAMP_KEY, timestamp);
+    console.log(`Cached ${shows.length} shows in database at ${new Date(timestamp).toISOString()}`);
+  } catch (error) {
+    console.error('Error setting cached shows:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear cached shows from database
+ */
+export async function clearCachedShows(): Promise<void> {
+  try {
+    await deleteValue(SHOWS_CACHE_KEY);
+    await deleteValue(SHOWS_TIMESTAMP_KEY);
+    console.log('Cleared cached shows from database');
+  } catch (error) {
+    console.error('Error clearing cached shows:', error);
+    throw error;
+  }
 }

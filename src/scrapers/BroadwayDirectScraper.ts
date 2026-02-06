@@ -47,60 +47,7 @@ export class BroadwayDirectScraper extends BaseScraper {
       console.log(`Scraped ${shows.length} shows from BroadwayDirect`);
     } catch (error) {
       console.error('Error scraping BroadwayDirect:', error);
-      // Fallback to known shows if scraping fails
-      const fallbackShows: Show[] = [
-        { 
-          name: 'Aladdin', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/aladdin/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'Wicked', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/wicked/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'The Lion King', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/the-lion-king/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'MJ', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/mj/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'Six', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/six/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'Death Becomes Her', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/', 
-          genre: 'musical', 
-          active: true 
-        },
-        { 
-          name: 'Stranger Things: The First Shadow', 
-          platform: this.platform, 
-          url: 'https://lottery.broadwaydirect.com/show/st-nyc/', 
-          genre: 'play', 
-          active: true 
-        },
-      ];
-      shows.push(...fallbackShows);
-      console.log(`Using fallback shows for BroadwayDirect (${fallbackShows.length} shows)`);
+      throw error; // Don't use fallback - let the error propagate
     }
     
     return shows;
