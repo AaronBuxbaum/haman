@@ -123,6 +123,64 @@ function detectPlatform() {
 }
 
 /**
+ * Find all available "Enter Now" buttons on the page
+ * Returns array of button elements that can be clicked
+ */
+function findAllEnterNowButtons() {
+  // First, try to find specific "Enter Now" links with class selectors
+  let enterButtons = Array.from(document.querySelectorAll('a.enter-lottery-link, a.enter-button'));
+  
+  if (enterButtons.length === 0) {
+    // Fallback: Look for any button/link with "Enter" text
+    enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
+      const text = el.textContent?.toLowerCase().trim();
+      // Use word boundary matching to avoid matching "entertainment", "center", etc.
+      // Match "enter", "enter now", "enter lottery" but exclude "already entered"
+      return (/\benter\b/.test(text) && !text.includes('already entered') && 
+              !text.includes('check') && !text.includes('closed') && !text.includes('upcoming'));
+    });
+  }
+  
+  // Filter to only active lottery buttons (with btn-primary class or visible)
+  enterButtons = enterButtons.filter(btn => {
+    return isElementVisible(btn) && !btn.classList.contains('disabled');
+  });
+  
+  console.log(`Haman: Found ${enterButtons.length} available "Enter Now" buttons`);
+  return enterButtons;
+}
+
+/**
+ * Wait for modal to close
+ * Returns a promise that resolves when the modal is no longer visible
+ */
+async function waitForModalClose(modal, timeout = 10000) {
+  if (!modal) return true;
+  
+  console.log('Haman: Waiting for modal to close...');
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    // Check if modal is no longer visible
+    if (!isElementVisible(modal)) {
+      console.log('Haman: Modal closed successfully');
+      return true;
+    }
+    
+    // Also check if modal has been removed from DOM
+    if (!document.contains(modal)) {
+      console.log('Haman: Modal removed from DOM');
+      return true;
+    }
+    
+    await randomDelay(200, 400);
+  }
+  
+  console.log('Haman: Timeout waiting for modal to close');
+  return false;
+}
+
+/**
  * Find and click the "Enter Now" button on BroadwayDirect lottery listing
  * Returns true if button was found and clicked
  */
@@ -353,24 +411,24 @@ function findBroadwayDirectElements(context = document) {
     'input[type="checkbox"][name*="agree" i]'
   );
 
-  // reCAPTCHA checkbox (if accessible - often in iframe)
-  // Try to find reCAPTCHA iframe and access its content
-  let recaptchaCheckbox = context.querySelector(
-    '.recaptcha-checkbox, #recaptcha-anchor, .rc-anchor-checkbox'
-  );
+  // reCAPTCHA - find the iframe container
+  // We can't access the checkbox inside cross-origin iframes due to security restrictions,
+  // but we can click on the iframe itself which will trigger the reCAPTCHA
+  let recaptchaElement = null;
   
-  // If not found directly, try to find it in the reCAPTCHA iframe
-  if (!recaptchaCheckbox) {
-    const recaptchaIframe = context.querySelector('iframe[src*="google.com/recaptcha"]');
-    if (recaptchaIframe) {
-      try {
-        const iframeDoc = recaptchaIframe.contentDocument || recaptchaIframe.contentWindow?.document;
-        if (iframeDoc) {
-          recaptchaCheckbox = iframeDoc.querySelector('#recaptcha-anchor, .recaptcha-checkbox');
-        }
-      } catch (e) {
-        console.log('Haman: Could not access reCAPTCHA iframe (cross-origin restriction)', e);
-      }
+  // First, try to find reCAPTCHA iframe
+  const recaptchaIframe = context.querySelector('iframe[src*="google.com/recaptcha"]');
+  if (recaptchaIframe) {
+    // Return the iframe itself - clicking it will trigger reCAPTCHA
+    recaptchaElement = recaptchaIframe;
+    console.log('Haman: Found reCAPTCHA iframe');
+  } else {
+    // Fallback: try to find checkbox directly (in case it's not in an iframe)
+    recaptchaElement = context.querySelector(
+      '.recaptcha-checkbox, #recaptcha-anchor, .rc-anchor-checkbox'
+    );
+    if (recaptchaElement) {
+      console.log('Haman: Found reCAPTCHA checkbox directly (not in iframe)');
     }
   }
 
@@ -396,7 +454,7 @@ function findBroadwayDirectElements(context = document) {
     zipInput,
     countrySelect,
     termsCheckbox,
-    recaptchaCheckbox,
+    recaptchaElement,
     submitButton 
   };
 }
@@ -572,21 +630,31 @@ async function fillBroadwayDirectForm(elements, data) {
     filledFields++;
   }
 
-  // Try to click reCAPTCHA if accessible
-  if (elements.recaptchaCheckbox) {
+  // Try to click reCAPTCHA if found
+  if (elements.recaptchaElement) {
     console.log('Haman: Attempting to click reCAPTCHA');
     try {
-      // Scroll the checkbox into view and click (use 'auto' for immediate scroll)
-      elements.recaptchaCheckbox.scrollIntoView({ behavior: 'auto', block: 'center' });
+      // Scroll the element into view and click
+      elements.recaptchaElement.scrollIntoView({ behavior: 'auto', block: 'center' });
       await randomDelay(300, 500);
-      elements.recaptchaCheckbox.click();
+      
+      // If it's an iframe, we need to click on it to trigger the reCAPTCHA
+      if (elements.recaptchaElement.tagName === 'IFRAME') {
+        // For iframes, we click directly on the iframe element which triggers the reCAPTCHA widget
+        elements.recaptchaElement.click();
+        console.log('Haman: Clicked reCAPTCHA iframe successfully');
+      } else {
+        // For direct checkboxes, click normally
+        elements.recaptchaElement.click();
+        console.log('Haman: Clicked reCAPTCHA checkbox successfully');
+      }
+      
       await randomDelay(500, 1000);
-      console.log('Haman: reCAPTCHA clicked successfully');
     } catch (e) {
       console.log('Haman: Could not click reCAPTCHA', e);
     }
   } else {
-    console.log('Haman: reCAPTCHA not found or not accessible (likely in cross-origin iframe)');
+    console.log('Haman: reCAPTCHA not found on page');
   }
 
   return filledFields;
@@ -738,6 +806,121 @@ async function fillLotteryForm(data) {
 }
 
 /**
+ * Process all available lotteries sequentially
+ * Finds all "Enter Now" buttons, clicks each one, fills the form, submits, waits for modal to close, and moves to the next
+ */
+async function processAllLotteries(data) {
+  const platform = detectPlatform();
+  if (platform !== 'broadwaydirect') {
+    console.log('Haman: Sequential lottery processing only supported on BroadwayDirect');
+    return { success: false, error: 'Platform not supported' };
+  }
+
+  // Find all available "Enter Now" buttons
+  const allButtons = findAllEnterNowButtons();
+  
+  if (allButtons.length === 0) {
+    console.log('Haman: No lottery buttons found');
+    return { success: false, error: 'No lottery buttons found' };
+  }
+
+  const results = [];
+  console.log(`Haman: Starting sequential processing of ${allButtons.length} lotteries`);
+
+  for (let i = 0; i < allButtons.length; i++) {
+    const button = allButtons[i];
+    const showName = button.textContent?.trim() || `Lottery ${i + 1}`;
+    
+    console.log(`\n=== Processing lottery ${i + 1}/${allButtons.length}: ${showName} ===`);
+    
+    try {
+      // Click the "Enter Now" button
+      console.log('Haman: Clicking "Enter Now" button...');
+      await clickElement(button);
+      await randomDelay(1500, 2500);
+      
+      // Wait for modal to appear
+      const modal = await waitForModal(5000);
+      const searchContext = modal || document;
+      
+      if (modal) {
+        console.log('Haman: Found modal for lottery form');
+      } else {
+        console.log('Haman: No modal detected, using document');
+      }
+      
+      // Get form elements
+      const elements = findBroadwayDirectElements(searchContext);
+      
+      // Fill the form
+      console.log('Haman: Filling form fields...');
+      const filledCount = await fillBroadwayDirectForm(elements, data);
+      console.log(`Haman: Filled ${filledCount} fields`);
+      
+      // Click the submit/Enter button
+      if (elements.submitButton) {
+        console.log('Haman: Clicking submit button...');
+        await clickElement(elements.submitButton);
+        await randomDelay(1000, 2000);
+        
+        // Wait for modal to close
+        if (modal) {
+          await waitForModalClose(modal, 10000);
+        } else {
+          // If no modal, just wait a bit
+          await randomDelay(2000, 3000);
+        }
+        
+        results.push({
+          success: true,
+          showName,
+          filledFields: filledCount,
+          index: i + 1,
+        });
+        
+        console.log(`Haman: Successfully processed lottery ${i + 1}/${allButtons.length}`);
+      } else {
+        console.log('Haman: Submit button not found');
+        results.push({
+          success: false,
+          showName,
+          error: 'Submit button not found',
+          index: i + 1,
+        });
+      }
+      
+      // Wait a bit before processing the next lottery
+      if (i < allButtons.length - 1) {
+        console.log('Haman: Waiting before next lottery...');
+        await randomDelay(1000, 2000);
+      }
+      
+    } catch (error) {
+      console.error(`Haman: Error processing lottery ${i + 1}:`, error);
+      results.push({
+        success: false,
+        showName,
+        error: error.message,
+        index: i + 1,
+      });
+    }
+  }
+
+  console.log(`\n=== Completed processing ${allButtons.length} lotteries ===`);
+  console.log('Results:', results);
+  
+  const successCount = results.filter(r => r.success).length;
+  showNotification(`Processed ${successCount}/${allButtons.length} lotteries successfully`, 'success');
+  
+  return {
+    success: true,
+    results,
+    totalProcessed: allButtons.length,
+    successCount,
+  };
+}
+
+/**
  * Try to extract show name from the page
  */
 function getShowNameFromPage() {
@@ -842,9 +1025,14 @@ function createHamanButton() {
     return;
   }
 
+  // Check if there are multiple lottery buttons on the page
+  const allButtons = findAllEnterNowButtons();
+  const hasMultipleLotteries = allButtons.length > 1;
+
+  // Create main button
   const button = document.createElement('button');
   button.id = 'haman-button';
-  button.innerHTML = '🎭 Haman';
+  button.innerHTML = hasMultipleLotteries ? '🎭 Fill One' : '🎭 Haman';
   button.style.cssText = `
     position: fixed;
     bottom: 20px;
@@ -886,13 +1074,13 @@ function createHamanButton() {
           zipCode: settings.zipCode,
           country: settings.country || 'US',
           ticketQuantity: settings.ticketQuantity || '2',
-          autoSubmit: false,
+          autoSubmit: true, // Always submit after filling
         });
 
         if (result.filledFields > 0) {
-          showNotification(`Form filled! (${result.filledFields} fields) Review and click submit.`, 'success');
+          showNotification(`Form filled and submitted! (${result.filledFields} fields)`, 'success');
         } else {
-          showNotification('Form filled! Review and click submit.', 'success');
+          showNotification('Form filled and submitted!', 'success');
         }
       } else {
         showNotification('Please configure your settings first.', 'error');
@@ -904,6 +1092,78 @@ function createHamanButton() {
   };
 
   document.body.appendChild(button);
+
+  // If there are multiple lotteries, add a "Process All" button
+  if (hasMultipleLotteries) {
+    const processAllButton = document.createElement('button');
+    processAllButton.id = 'haman-process-all-button';
+    processAllButton.innerHTML = `🎭 Fill All (${allButtons.length})`;
+    processAllButton.style.cssText = `
+      position: fixed;
+      bottom: 70px;
+      right: 20px;
+      z-index: 10000;
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    processAllButton.onmouseover = () => {
+      processAllButton.style.transform = 'scale(1.05)';
+      processAllButton.style.boxShadow = '0 6px 20px rgba(245, 87, 108, 0.5)';
+    };
+
+    processAllButton.onmouseout = () => {
+      processAllButton.style.transform = 'scale(1)';
+      processAllButton.style.boxShadow = '0 4px 15px rgba(245, 87, 108, 0.4)';
+    };
+
+    processAllButton.onclick = async () => {
+      try {
+        // Disable button during processing
+        processAllButton.disabled = true;
+        processAllButton.innerHTML = '⏳ Processing...';
+        processAllButton.style.opacity = '0.7';
+
+        const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+        if (response && response.success && response.data) {
+          const settings = response.data;
+          const result = await processAllLotteries({
+            email: settings.defaultEmail,
+            firstName: settings.defaultFirstName,
+            lastName: settings.defaultLastName,
+            dateOfBirth: settings.dateOfBirth,
+            zipCode: settings.zipCode,
+            country: settings.country || 'US',
+            ticketQuantity: settings.ticketQuantity || '2',
+            autoSubmit: true,
+          });
+
+          console.log('Process all result:', result);
+        } else {
+          showNotification('Please configure your settings first.', 'error');
+        }
+      } catch (error) {
+        console.error('Haman: Error processing all lotteries:', error);
+        showNotification('Error processing lotteries: ' + (error.message || 'Unknown error'), 'error');
+      } finally {
+        // Re-enable button
+        processAllButton.disabled = false;
+        processAllButton.innerHTML = `🎭 Fill All (${allButtons.length})`;
+        processAllButton.style.opacity = '1';
+      }
+    };
+
+    document.body.appendChild(processAllButton);
+  }
 }
 
 /**
