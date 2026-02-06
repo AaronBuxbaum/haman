@@ -108,12 +108,14 @@ function detectPlatform() {
  */
 async function clickEnterNowButton() {
   // First, try to find the specific "Enter Now" link with the enter-lottery-link class
+  // Note: On small screens, buttons may say just "Enter" instead of "Enter Now"
   let enterButton = document.querySelector('a.enter-lottery-link, a.enter-button');
   
   if (enterButton) {
-    console.log('Haman: Found "Enter Now" button with class selector');
+    console.log('Haman: Found "Enter Now"/"Enter" button with class selector');
   } else {
     // Fallback: Look for any button/link with "Enter" text
+    // This handles both "Enter" (small screens) and "Enter Now" (large screens)
     const enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
       const text = el.textContent?.toLowerCase().trim();
       // Match "enter", "enter now", "enter lottery" but exclude "already entered"
@@ -125,7 +127,7 @@ async function clickEnterNowButton() {
     enterButton = enterButtons.find(btn => btn.classList.contains('btn-primary')) || enterButtons[0];
     
     if (enterButton) {
-      console.log('Haman: Found "Enter Now" button with text matching (fallback)');
+      console.log('Haman: Found "Enter Now"/"Enter" button with text matching (fallback)');
     }
   }
 
