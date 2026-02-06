@@ -1032,7 +1032,7 @@ function createHamanButton() {
   // Create main button
   const button = document.createElement('button');
   button.id = 'haman-button';
-  button.innerHTML = hasMultipleLotteries ? '🎭 Fill One' : '🎭 Haman';
+  button.innerHTML = hasMultipleLotteries ? `🎭 Fill All (${allButtons.length})` : '🎭 Haman';
   button.style.cssText = `
     position: fixed;
     bottom: 20px;
@@ -1066,76 +1066,14 @@ function createHamanButton() {
       const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
       if (response && response.success && response.data) {
         const settings = response.data;
-        const result = await fillLotteryForm({
-          email: settings.defaultEmail,
-          firstName: settings.defaultFirstName,
-          lastName: settings.defaultLastName,
-          dateOfBirth: settings.dateOfBirth,
-          zipCode: settings.zipCode,
-          country: settings.country || 'US',
-          ticketQuantity: settings.ticketQuantity || '2',
-          autoSubmit: true, // Always submit after filling
-        });
+        
+        // If multiple lotteries, process all of them
+        if (hasMultipleLotteries) {
+          // Disable button during processing
+          button.disabled = true;
+          button.innerHTML = '⏳ Processing...';
+          button.style.opacity = '0.7';
 
-        if (result.filledFields > 0) {
-          showNotification(`Form filled and submitted! (${result.filledFields} fields)`, 'success');
-        } else {
-          showNotification('Form filled and submitted!', 'success');
-        }
-      } else {
-        showNotification('Please configure your settings first.', 'error');
-      }
-    } catch (error) {
-      console.error('Haman: Error filling form:', error);
-      showNotification('Error filling form: ' + (error.message || 'Unknown error'), 'error');
-    }
-  };
-
-  document.body.appendChild(button);
-
-  // If there are multiple lotteries, add a "Process All" button
-  if (hasMultipleLotteries) {
-    const processAllButton = document.createElement('button');
-    processAllButton.id = 'haman-process-all-button';
-    processAllButton.innerHTML = `🎭 Fill All (${allButtons.length})`;
-    processAllButton.style.cssText = `
-      position: fixed;
-      bottom: 70px;
-      right: 20px;
-      z-index: 10000;
-      padding: 12px 20px;
-      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      color: white;
-      border: none;
-      border-radius: 25px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
-      transition: transform 0.2s, box-shadow 0.2s;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
-
-    processAllButton.onmouseover = () => {
-      processAllButton.style.transform = 'scale(1.05)';
-      processAllButton.style.boxShadow = '0 6px 20px rgba(245, 87, 108, 0.5)';
-    };
-
-    processAllButton.onmouseout = () => {
-      processAllButton.style.transform = 'scale(1)';
-      processAllButton.style.boxShadow = '0 4px 15px rgba(245, 87, 108, 0.4)';
-    };
-
-    processAllButton.onclick = async () => {
-      try {
-        // Disable button during processing
-        processAllButton.disabled = true;
-        processAllButton.innerHTML = '⏳ Processing...';
-        processAllButton.style.opacity = '0.7';
-
-        const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
-        if (response && response.success && response.data) {
-          const settings = response.data;
           const result = await processAllLotteries({
             email: settings.defaultEmail,
             firstName: settings.defaultFirstName,
@@ -1148,22 +1086,47 @@ function createHamanButton() {
           });
 
           console.log('Process all result:', result);
+          
+          // Re-enable button
+          button.disabled = false;
+          button.innerHTML = `🎭 Fill All (${allButtons.length})`;
+          button.style.opacity = '1';
         } else {
-          showNotification('Please configure your settings first.', 'error');
-        }
-      } catch (error) {
-        console.error('Haman: Error processing all lotteries:', error);
-        showNotification('Error processing lotteries: ' + (error.message || 'Unknown error'), 'error');
-      } finally {
-        // Re-enable button
-        processAllButton.disabled = false;
-        processAllButton.innerHTML = `🎭 Fill All (${allButtons.length})`;
-        processAllButton.style.opacity = '1';
-      }
-    };
+          // Single lottery - use the original fillLotteryForm function
+          const result = await fillLotteryForm({
+            email: settings.defaultEmail,
+            firstName: settings.defaultFirstName,
+            lastName: settings.defaultLastName,
+            dateOfBirth: settings.dateOfBirth,
+            zipCode: settings.zipCode,
+            country: settings.country || 'US',
+            ticketQuantity: settings.ticketQuantity || '2',
+            autoSubmit: true, // Always submit after filling
+          });
 
-    document.body.appendChild(processAllButton);
-  }
+          if (result.filledFields > 0) {
+            showNotification(`Form filled and submitted! (${result.filledFields} fields)`, 'success');
+          } else {
+            showNotification('Form filled and submitted!', 'success');
+          }
+        }
+      } else {
+        showNotification('Please configure your settings first.', 'error');
+      }
+    } catch (error) {
+      console.error('Haman: Error filling form:', error);
+      showNotification('Error filling form: ' + (error.message || 'Unknown error'), 'error');
+      
+      // Re-enable button if it was disabled
+      if (hasMultipleLotteries) {
+        button.disabled = false;
+        button.innerHTML = `🎭 Fill All (${allButtons.length})`;
+        button.style.opacity = '1';
+      }
+    }
+  };
+
+  document.body.appendChild(button);
 }
 
 /**
