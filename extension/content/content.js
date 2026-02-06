@@ -136,8 +136,11 @@ function findAllEnterNowButtons() {
       const text = el.textContent?.toLowerCase().trim();
       // Use word boundary matching to avoid matching "entertainment", "center", etc.
       // Match "enter", "enter now", "enter lottery" but exclude "already entered"
-      return (/\benter\b/.test(text) && !text.includes('already entered') && 
-              !text.includes('check') && !text.includes('closed') && !text.includes('upcoming'));
+      return /\benter\b/.test(text) && 
+             !text.includes('already entered') && 
+             !text.includes('check') && 
+             !text.includes('closed') && 
+             !text.includes('upcoming');
     });
   }
   
@@ -152,7 +155,9 @@ function findAllEnterNowButtons() {
 
 /**
  * Wait for modal to close
- * Returns a promise that resolves when the modal is no longer visible
+ * @param {Element} modal - The modal element to monitor
+ * @param {number} timeout - Maximum time to wait in milliseconds (default: 10000ms)
+ * @returns {Promise<boolean>} Resolves to true when modal closes or times out
  */
 async function waitForModalClose(modal, timeout = 10000) {
   if (!modal) return true;
@@ -829,7 +834,11 @@ async function processAllLotteries(data) {
 
   for (let i = 0; i < allButtons.length; i++) {
     const button = allButtons[i];
-    const showName = button.textContent?.trim() || `Lottery ${i + 1}`;
+    // Extract show name, truncate to max 50 chars to avoid clutter
+    let showName = button.textContent?.trim() || `Lottery ${i + 1}`;
+    if (showName.length > 50) {
+      showName = showName.substring(0, 47) + '...';
+    }
     
     console.log(`\n=== Processing lottery ${i + 1}/${allButtons.length}: ${showName} ===`);
     
@@ -1087,9 +1096,13 @@ function createHamanButton() {
 
           console.log('Process all result:', result);
           
-          // Re-enable button
+          // Re-enable button - show result count instead of initial count
           button.disabled = false;
-          button.innerHTML = `🎭 Fill All (${allButtons.length})`;
+          if (result && result.successCount !== undefined) {
+            button.innerHTML = `✅ Done (${result.successCount}/${result.totalProcessed})`;
+          } else {
+            button.innerHTML = `🎭 Fill All (${allButtons.length})`;
+          }
           button.style.opacity = '1';
         } else {
           // Single lottery - use the original fillLotteryForm function
