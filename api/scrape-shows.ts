@@ -87,7 +87,7 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
           
           if (href && text && href.includes('show') && !seen.has(href)) {
             // Clean up the show name
-            let name = text.replace(/\s*lottery\s*/gi, '').trim();
+            const name = text.replace(/\s*lottery\s*/gi, '').trim();
             
             // Skip if it's navigation or footer links
             if (name.length > 0 && name.length < 100 && 
@@ -192,7 +192,7 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
           
           if (href && text && href.includes('show') && !seen.has(href)) {
             // Clean up the show name
-            let name = text.replace(/\s*lottery\s*/gi, '').trim();
+            const name = text.replace(/\s*lottery\s*/gi, '').trim();
             
             // Skip if it's navigation or footer links
             if (name.length > 0 && name.length < 100 && 
