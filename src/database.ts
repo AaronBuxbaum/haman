@@ -1,23 +1,19 @@
 import { User, ParsedPreferences } from './types';
-import { DataStore } from './storage/DataStore';
-import { VolatileStore } from './storage/VolatileStore';
 
 /**
- * Simple user database that wraps the data store
- * Maintains backward compatibility with existing code
+ * Simple in-memory user database
+ * In production, this would be replaced with a real database (DynamoDB, PostgreSQL, etc.)
+ * 
+ * INTEGRATION READY: This class interface supports database backends
+ * To add persistence, replace internal Map with database client calls
  */
 export class UserDatabase {
-  private dataStore: DataStore;
-
-  constructor(dataStore?: DataStore) {
-    this.dataStore = dataStore || new VolatileStore();
-  }
+  private users: Map<string, User> = new Map();
 
   /**
    * Create a new user
    */
   createUser(email: string, preferences: string, firstName?: string, lastName?: string): User {
-    // For backward compatibility, create user without password hash
     const user: User = {
       id: this.generateId(),
       email,
@@ -28,17 +24,7 @@ export class UserDatabase {
       updatedAt: new Date()
     };
 
-    // Simulate synchronous behavior for backward compatibility
-    this.dataStore.persistUser({
-      email,
-      passwordHash: '', // Empty for backward compatibility
-      preferences,
-      firstName,
-      lastName
-    }).then(createdUser => {
-      Object.assign(user, createdUser);
-    });
-
+    this.users.set(user.id, user);
     return user;
   }
 
@@ -46,56 +32,42 @@ export class UserDatabase {
    * Get a user by ID
    */
   getUser(id: string): User | undefined {
-    // Note: This is a temporary bridge - real implementation should be async
-    let result: User | undefined;
-    this.dataStore.findUserById(id).then(user => {
-      result = user || undefined;
-    });
-    return result;
+    return this.users.get(id);
   }
 
   /**
    * Get a user by email
    */
   getUserByEmail(email: string): User | undefined {
-    // Note: This is a temporary bridge - real implementation should be async
-    let result: User | undefined;
-    this.dataStore.findUserByEmailAddress(email).then(user => {
-      result = user || undefined;
-    });
-    return result;
+    return Array.from(this.users.values()).find(u => u.email === email);
   }
 
   /**
    * Get all users
    */
   getAllUsers(): User[] {
-    // Note: This is a temporary bridge - real implementation should be async
-    let result: User[] = [];
-    this.dataStore.queryAllUsers().then(users => {
-      result = users;
-    });
-    return result;
+    return Array.from(this.users.values());
   }
 
   /**
    * Update user preferences
    */
   updateUserPreferences(id: string, preferences: string, parsedPreferences?: ParsedPreferences): User | undefined {
-    // Note: This is a temporary bridge - real implementation should be async
-    let result: User | undefined;
-    this.dataStore.modifyUser(id, { preferences, parsedPreferences }).then(user => {
-      result = user || undefined;
-    });
-    return result;
+    const user = this.users.get(id);
+    if (!user) return undefined;
+
+    user.preferences = preferences;
+    user.parsedPreferences = parsedPreferences;
+    user.updatedAt = new Date();
+
+    return user;
   }
 
   /**
    * Delete a user
    */
   deleteUser(id: string): boolean {
-    this.dataStore.removeUser(id);
-    return true;
+    return this.users.delete(id);
   }
 
   /**
@@ -104,12 +76,4 @@ export class UserDatabase {
   private generateId(): string {
     return `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
-
-  /**
-   * Get the underlying data store for advanced operations
-   */
-  getDataStore(): DataStore {
-    return this.dataStore;
-  }
 }
-

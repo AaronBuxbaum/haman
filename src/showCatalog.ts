@@ -2,6 +2,13 @@ import { Show } from './types';
 
 /**
  * Broadway show catalog
+ * 
+ * EXTENSIBILITY NOTES:
+ * - Additional lottery platforms can be added by extending the 'platform' type
+ * - Dynamic catalog updates can be implemented by replacing this static array
+ *   with database queries or API calls
+ * - New automation classes should be created in lotteryAutomation.ts for each platform
+ * 
  * In production, this would be dynamically updated from various sources
  */
 export const BROADWAY_SHOWS: Show[] = [
