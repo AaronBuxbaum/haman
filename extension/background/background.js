@@ -117,20 +117,30 @@ async function handleDailyApply() {
     try {
       const tab = await chrome.tabs.create({ url: show.show.url, active: false });
 
-      chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-        if (tabId === tab.id && changeInfo.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
+      // Wait for tab to load before sending message
+      await new Promise((resolve) => {
+        function listener(tabId, changeInfo) {
+          if (tabId === tab.id && changeInfo.status === 'complete') {
+            chrome.tabs.onUpdated.removeListener(listener);
 
-          chrome.tabs.sendMessage(tab.id, {
-            type: 'FILL_LOTTERY_FORM',
-            payload: {
-              email: settings.defaultEmail,
-              firstName: settings.defaultFirstName,
-              lastName: settings.defaultLastName,
-            },
-          });
+            chrome.tabs.sendMessage(tab.id, {
+              type: 'FILL_LOTTERY_FORM',
+              payload: {
+                email: settings.defaultEmail,
+                firstName: settings.defaultFirstName,
+                lastName: settings.defaultLastName,
+                autoSubmit: true, // Enable auto-submit for scheduled applications
+              },
+            });
+            
+            resolve();
+          }
         }
+        chrome.tabs.onUpdated.addListener(listener);
       });
+      
+      // Small delay between applications to be respectful
+      await new Promise(r => setTimeout(r, 5000));
     } catch (error) {
       console.error(`Error applying to ${show.show.name}:`, error);
     }
@@ -380,13 +390,39 @@ async function handleMessage(message, sender) {
 }
 
 /**
+ * Check if URL is a valid lottery page using hostname validation
+ */
+function isValidLotteryUrl(url) {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname;
+    
+    // Check for BroadwayDirect lottery page
+    if (hostname === 'lottery.broadwaydirect.com' || 
+        hostname.endsWith('.broadwaydirect.com')) {
+      return true;
+    }
+    
+    // Check for LuckySeat lottery page
+    if (hostname === 'luckyseat.com' || 
+        hostname === 'www.luckyseat.com' ||
+        hostname.endsWith('.luckyseat.com')) {
+      return true;
+    }
+  } catch (e) {
+    // Invalid URL
+    return false;
+  }
+  
+  return false;
+}
+
+/**
  * Detect lottery pages when tabs update
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
-    const isLotteryPage = 
-      tab.url.includes('lottery.broadwaydirect.com') ||
-      tab.url.includes('luckyseat.com');
+    const isLotteryPage = isValidLotteryUrl(tab.url);
     
     if (isLotteryPage) {
       chrome.action.setBadgeText({ tabId, text: '🎭' });

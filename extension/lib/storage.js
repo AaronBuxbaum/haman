@@ -207,14 +207,3 @@ async function addLotteryResult(result) {
 async function clearLotteryHistoryStorage() {
   await chrome.storage.local.remove(KEYS.LOTTERY_HISTORY);
 }
-
-/**
- * Simple password encoding/decoding for storage
- */
-function encodePassword(password) {
-  return btoa(password);
-}
-
-function decodePassword(encoded) {
-  return atob(encoded);
-}

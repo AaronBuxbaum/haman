@@ -152,7 +152,9 @@ async function handleAddCredential() {
       id: `${platform}:${email}`,
       platform,
       email,
-      encryptedPassword: btoa(password),
+      // Note: This is base64 encoding (obfuscation), not true encryption
+      // Chrome's storage.sync provides some protection, but passwords could be decoded
+      encodedPassword: btoa(password),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

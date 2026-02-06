@@ -20,6 +20,10 @@ async function typeText(element, text) {
   element.focus();
   await randomDelay(100, 200);
 
+  // Clear the field first (handles both empty and pre-filled fields)
+  element.value = '';
+  element.dispatchEvent(new Event('input', { bubbles: true }));
+  
   for (const char of text) {
     element.value += char;
     element.dispatchEvent(new Event('input', { bubbles: true }));
@@ -40,17 +44,26 @@ async function clickElement(element) {
 }
 
 /**
- * Detect the current lottery platform
+ * Detect the current lottery platform using hostname validation
  */
 function detectPlatform() {
-  const url = window.location.href;
+  try {
+    const hostname = window.location.hostname;
 
-  if (url.includes('lottery.broadwaydirect.com')) {
-    return 'broadwaydirect';
-  }
+    // Check for exact match or subdomain of broadwaydirect.com
+    if (hostname === 'lottery.broadwaydirect.com' || 
+        hostname.endsWith('.broadwaydirect.com')) {
+      return 'broadwaydirect';
+    }
 
-  if (url.includes('luckyseat.com')) {
-    return 'socialtoaster';
+    // Check for exact match or subdomain of luckyseat.com  
+    if (hostname === 'luckyseat.com' || 
+        hostname === 'www.luckyseat.com' ||
+        hostname.endsWith('.luckyseat.com')) {
+      return 'socialtoaster';
+    }
+  } catch (e) {
+    console.error('Haman: Error detecting platform', e);
   }
 
   return null;
@@ -131,7 +144,6 @@ async function fillLotteryForm(data) {
   // Fill email
   if (elements.emailInput && data.email) {
     console.log('Haman: Filling email field');
-    elements.emailInput.value = '';
     await typeText(elements.emailInput, data.email);
     await randomDelay(300, 600);
   } else if (data.email) {
@@ -141,7 +153,6 @@ async function fillLotteryForm(data) {
   // Fill first name (if available)
   if (elements.firstNameInput && data.firstName) {
     console.log('Haman: Filling first name field');
-    elements.firstNameInput.value = '';
     await typeText(elements.firstNameInput, data.firstName);
     await randomDelay(200, 400);
   }
@@ -149,7 +160,6 @@ async function fillLotteryForm(data) {
   // Fill last name (if available)
   if (elements.lastNameInput && data.lastName) {
     console.log('Haman: Filling last name field');
-    elements.lastNameInput.value = '';
     await typeText(elements.lastNameInput, data.lastName);
     await randomDelay(200, 400);
   }
