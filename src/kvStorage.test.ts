@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'bun:test';
 import { 
   setUserOverride, 
   getUserOverride, 
@@ -14,7 +15,7 @@ describe('KV Storage', () => {
   const testPlatform = 'socialtoaster';
 
   describe('User Overrides', () => {
-    it('should set and get a user override', async () => {
+    test('should set and get a user override', async () => {
       const override = await setUserOverride(testUserId, testShowName, testPlatform, true);
       
       expect(override.userId).toBe(testUserId);
@@ -27,7 +28,7 @@ describe('KV Storage', () => {
       expect(retrieved?.shouldApply).toBe(true);
     });
 
-    it('should get all overrides for a user', async () => {
+    test('should get all overrides for a user', async () => {
       await setUserOverride(testUserId, 'Hamilton', 'socialtoaster', true);
       await setUserOverride(testUserId, 'Wicked', 'socialtoaster', false);
       
@@ -35,7 +36,7 @@ describe('KV Storage', () => {
       expect(overrides.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('should delete a user override', async () => {
+    test('should delete a user override', async () => {
       await setUserOverride(testUserId, testShowName, testPlatform, true);
       await deleteUserOverride(testUserId, testShowName, testPlatform);
       
@@ -48,7 +49,7 @@ describe('KV Storage', () => {
     const testEmail = 'test@example.com';
     const testPassword = 'test-password-123';
 
-    it('should save and get platform credentials', async () => {
+    test('should save and get platform credentials', async () => {
       const credentials = await savePlatformCredentials(
         testUserId,
         'socialtoaster',
@@ -68,7 +69,7 @@ describe('KV Storage', () => {
       expect(found).toBeDefined();
     });
 
-    it('should decrypt password correctly', async () => {
+    test('should decrypt password correctly', async () => {
       const credentials = await savePlatformCredentials(
         testUserId,
         'broadwaydirect',
@@ -80,7 +81,7 @@ describe('KV Storage', () => {
       expect(decrypted).toBe(testPassword);
     });
 
-    it('should support multiple credentials per platform', async () => {
+    test('should support multiple credentials per platform', async () => {
       await savePlatformCredentials(testUserId, 'socialtoaster', 'user1@example.com', 'pass1');
       await savePlatformCredentials(testUserId, 'socialtoaster', 'user2@example.com', 'pass2');
       
