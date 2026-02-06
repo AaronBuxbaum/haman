@@ -1,0 +1,36 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@3.0.0",
+      "maxDuration": 300
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai-api-key",
+    "NODE_ENV": "production",
+    "CRON_SECRET": "@cron-secret"
+  },
+  "crons": [
+    {
+      "path": "/api/apply-lotteries",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/apply-lotteries",
+      "schedule": "0 16 * * *"
+    }
+  ]
+}
