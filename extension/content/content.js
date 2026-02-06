@@ -118,8 +118,9 @@ async function clickEnterNowButton() {
     // This handles both "Enter" (small screens) and "Enter Now" (large screens)
     const enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
       const text = el.textContent?.toLowerCase().trim();
+      // Use word boundary matching to avoid matching "entertainment", "center", etc.
       // Match "enter", "enter now", "enter lottery" but exclude "already entered"
-      return (text.includes('enter') && !text.includes('already entered') && 
+      return (/\benter\b/.test(text) && !text.includes('already entered') && 
               !text.includes('check') && !text.includes('closed') && !text.includes('upcoming'));
     });
     
@@ -193,34 +194,71 @@ async function waitForModal(timeout = 5000) {
     '#dlslot-modal',                  // BroadwayDirect modal
   ];
 
-  // Try each selector
+  // First, check if any modal is already visible
   for (const selector of modalSelectors) {
-    const modal = await waitForElement(selector, timeout);
-    if (modal && modal.offsetParent !== null) { // Check if visible
+    const modal = document.querySelector(selector);
+    if (modal && isElementVisible(modal)) {
+      console.log(`Haman: Found existing modal with selector: ${selector}`);
+      return handleModalElement(modal);
+    }
+  }
+
+  // If not found immediately, wait for one to appear (with shorter timeout per selector)
+  const selectorTimeout = Math.min(1000, timeout / modalSelectors.length);
+  
+  for (const selector of modalSelectors) {
+    const modal = await waitForElement(selector, selectorTimeout);
+    if (modal && isElementVisible(modal)) {
       console.log(`Haman: Detected modal with selector: ${selector}`);
-      
-      // If it's an iframe, return its contentDocument
-      if (modal.tagName === 'IFRAME') {
-        try {
-          const iframeDoc = modal.contentDocument || modal.contentWindow?.document;
-          if (iframeDoc) {
-            console.log('Haman: Accessing iframe content for form filling');
-            // Wait a bit for iframe content to load
-            await randomDelay(500, 1000);
-            return iframeDoc;
-          }
-        } catch (e) {
-          console.log('Haman: Could not access iframe content (cross-origin?)', e);
-          return null;
-        }
-      }
-      
-      return modal;
+      return handleModalElement(modal);
     }
   }
 
   console.log('Haman: No modal detected, form may be on current page');
   return null;
+}
+
+/**
+ * Check if element is visible (handles fixed positioning and various visibility scenarios)
+ */
+function isElementVisible(element) {
+  if (!element) return false;
+  
+  // Check offsetParent (works for most cases)
+  if (element.offsetParent !== null) return true;
+  
+  // For fixed position elements, check computed style
+  const style = window.getComputedStyle(element);
+  if (style.position === 'fixed') {
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  }
+  
+  // Check dimensions as final fallback
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+/**
+ * Handle modal element - extract iframe content if needed
+ */
+async function handleModalElement(modal) {
+  // If it's an iframe, return its contentDocument
+  if (modal.tagName === 'IFRAME') {
+    try {
+      const iframeDoc = modal.contentDocument || modal.contentWindow?.document;
+      if (iframeDoc) {
+        console.log('Haman: Accessing iframe content for form filling');
+        // Wait a bit for iframe content to load
+        await randomDelay(500, 1000);
+        return iframeDoc;
+      }
+    } catch (e) {
+      console.log('Haman: Could not access iframe content (cross-origin?)', e);
+      return null;
+    }
+  }
+  
+  return modal;
 }
 
 /**
