@@ -155,24 +155,42 @@ The AI parser will extract:
 
 ## Show Catalog
 
-The system includes a catalog of Broadway shows with:
+The system dynamically scrapes Broadway show catalogs from lottery platforms using Vercel serverless functions:
+
+### Dynamic Scraping
+- **API Endpoint**: `/api/scrape-shows` scrapes current shows from LuckySeat and BroadwayDirect
+- **Caching**: Results cached for 1 hour to minimize requests and avoid blocking
+- **Anti-Detection**: Implements browser fingerprinting, user agent rotation, random delays
+- **Request Interspersing**: 3-5 second delays between platforms to avoid detection
+- **Fallback**: Uses known current shows if scraping fails
+
+### Show Data
+Each show includes:
 - Show name
 - Platform (socialtoaster or broadwaydirect)
 - Lottery URL
 - Genre
 - Active status
 
-Shows can be added/removed by updating `src/showCatalog.ts`.
+### Manual Refresh
+To force a refresh of the show catalog, call the API with `?refresh=true`:
+```bash
+curl https://your-vercel-app.vercel.app/api/scrape-shows?refresh=true
+```
+
+The catalog updates automatically every hour when accessed.
 
 ## Lottery Platforms
 
-### SocialToaster
-- Popular platform for Broadway lotteries
-- Examples: Hamilton, Wicked, The Lion King
+### LuckySeat (SocialToaster)
+- Platform for Broadway lotteries
+- Current shows: Hadestown, Moulin Rouge! The Musical, The Book of Mormon, and more
+- URL: https://www.luckyseat.com/
 
 ### BroadwayDirect
-- Another major lottery platform
-- Examples: Book of Mormon, Chicago, Moulin Rouge
+- Major lottery platform
+- Current shows: Aladdin, Wicked, The Lion King, MJ, Six, Death Becomes Her, Stranger Things: The First Shadow, and more
+- URL: https://lottery.broadwaydirect.com/
 
 ## Serverless Configuration
 
