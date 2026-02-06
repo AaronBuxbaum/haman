@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { timingSafeEqual } from 'crypto';
 import { LotteryService } from '../../src/lotteryService';
 
 /**
@@ -9,6 +10,32 @@ import { LotteryService } from '../../src/lotteryService';
  * This endpoint applies to lotteries for ALL users in the system.
  * For applying to lotteries for a specific user, use /api/apply-lotteries instead.
  */
+
+/**
+ * Timing-safe comparison of authorization tokens
+ * Prevents timing attacks by ensuring constant-time comparison
+ */
+function isAuthorized(authHeader: string | undefined, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  
+  const expectedAuth = `Bearer ${expectedSecret}`;
+  
+  // Ensure both strings are same length for timingSafeEqual
+  if (authHeader.length !== expectedAuth.length) {
+    return false;
+  }
+  
+  try {
+    const authBuffer = Buffer.from(authHeader);
+    const expectedBuffer = Buffer.from(expectedAuth);
+    return timingSafeEqual(authBuffer, expectedBuffer);
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -21,7 +48,7 @@ export default async function handler(
   const cronHeader = req.headers['x-vercel-cron'];
   
   // Allow requests from Vercel cron or with valid authorization
-  if (!cronHeader && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronHeader && !isAuthorized(authHeader, process.env.CRON_SECRET)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

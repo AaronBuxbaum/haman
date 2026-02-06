@@ -47,16 +47,22 @@ export default async function handler(
 
   try {
     // Launch browser with anti-detection settings
+    // These flags are necessary for scraping public lottery websites:
+    // - --disable-web-security: Required to bypass CORS when scraping cross-origin resources
+    //   from lottery platforms that don't allow programmatic access
+    // - --no-sandbox/--disable-setuid-sandbox: Required for running Chrome in serverless environments
+    //   where sandboxing is not available (Vercel, AWS Lambda, etc.)
+    // - Other flags: Hide automation detection to ensure scrapers work reliably
     browser = await chromium.launch({
       headless: true,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-site-isolation-trials',
-        '--disable-web-security',
+        '--disable-web-security', // See security note above
         '--disable-dev-shm-usage',
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
+        '--no-sandbox', // Required for serverless
+        '--disable-setuid-sandbox' // Required for serverless
       ]
     });
 
