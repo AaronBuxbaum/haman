@@ -6,7 +6,26 @@ import { savePlatformCredentials, getPlatformCredentials, deletePlatformCredenti
  * POST /api/credentials - Save platform credentials
  * DELETE /api/credentials - Delete platform credentials
  */
+
+// Explicit API route configuration to ensure body parsing is enabled
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Set CORS headers for all requests
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const { userId } = req.query;
 
