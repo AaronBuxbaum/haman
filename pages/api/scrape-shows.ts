@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { chromium, Browser } from 'playwright';
+import { chromium, Browser } from 'playwright-core';
+import chromiumPackage from '@sparticuz/chromium';
 import { ScraperFactory } from '../../src/scrapers';
 import { getCachedShows, setCachedShows } from '../../src/kvStorage';
 
@@ -54,9 +55,15 @@ export default async function handler(
     // - --no-sandbox/--disable-setuid-sandbox: Required for running Chrome in serverless environments
     //   where sandboxing is not available (Vercel, AWS Lambda, etc.)
     // - Other flags: Hide automation detection to ensure scrapers work reliably
+    
+    // Get the executable path for serverless Chromium
+    const executablePath = await chromiumPackage.executablePath();
+    
     browser = await chromium.launch({
+      executablePath,
       headless: true,
       args: [
+        ...chromiumPackage.args,
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-site-isolation-trials',

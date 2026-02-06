@@ -165,6 +165,8 @@ The Vercel deployment includes scheduled cron jobs that run:
 3. **Lottery Automation** (`src/lotteryAutomation.ts`)
    - Playwright-based automation for lottery applications
    - Supports SocialToaster and BroadwayDirect platforms
+   - Uses serverless-optimized Chromium for Vercel deployment
+   - See `SERVERLESS_PLAYWRIGHT.md` for technical details
 
 4. **Show Catalog** (`src/showCatalog.ts`)
    - Catalog of available Broadway shows and their lottery URLs

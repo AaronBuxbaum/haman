@@ -1,4 +1,4 @@
-import { Browser } from 'playwright';
+import { Browser } from 'playwright-core';
 import { BaseScraper } from './BaseScraper';
 import { Show } from '../types';
 import { ScraperConfig } from './types';
