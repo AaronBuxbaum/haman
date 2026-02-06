@@ -543,7 +543,10 @@ async function fillBroadwayDirectForm(elements, data) {
     const countryValue = mapCountryToValue(data.country);
     
     // Try the mapped value first, then fall back to the original value
-    const possibleValues = [countryValue, data.country, data.country.toUpperCase()];
+    const possibleValues = [countryValue, data.country];
+    if (data.country) {
+      possibleValues.push(data.country.toUpperCase());
+    }
     const optionFound = trySelectOption(elements.countrySelect, possibleValues);
     
     if (optionFound) {
@@ -573,8 +576,8 @@ async function fillBroadwayDirectForm(elements, data) {
   if (elements.recaptchaCheckbox) {
     console.log('Haman: Attempting to click reCAPTCHA');
     try {
-      // Scroll the checkbox into view and click
-      elements.recaptchaCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Scroll the checkbox into view and click (use 'auto' for immediate scroll)
+      elements.recaptchaCheckbox.scrollIntoView({ behavior: 'auto', block: 'center' });
       await randomDelay(300, 500);
       elements.recaptchaCheckbox.click();
       await randomDelay(500, 1000);
