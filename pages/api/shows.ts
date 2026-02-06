@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    const shows = getActiveShows();
+    const shows = await getActiveShows();
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
     // Get all user overrides

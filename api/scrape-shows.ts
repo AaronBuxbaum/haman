@@ -48,8 +48,8 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
 
     // Hide automation markers
     await context.addInitScript(() => {
-      // @ts-expect-error - navigator is available in browser context
-      Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Object.defineProperty(Object.getPrototypeOf((navigator as any)), 'webdriver', {
         get: () => false
       });
     });
@@ -155,8 +155,8 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
 
     // Hide automation markers
     await context.addInitScript(() => {
-      // @ts-expect-error - navigator is available in browser context
-      Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Object.defineProperty(Object.getPrototypeOf((navigator as any)), 'webdriver', {
         get: () => false
       });
     });

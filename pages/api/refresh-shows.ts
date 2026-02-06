@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     // TODO: Implement actual scraping logic
     // For now, just return the current catalog
-    const shows = getActiveShows();
+    const shows = await getActiveShows();
     
     return res.status(200).json({ 
       success: true,
