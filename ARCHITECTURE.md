@@ -2,37 +2,202 @@
 
 ## Overview
 
-Haman is a Broadway lottery automation system that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries on behalf of users.
+Haman is a Broadway lottery automation system with a modern web interface that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries on behalf of users.
 
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      AWS Lambda (Serverless)                 │
-│                                                              │
-│  ┌──────────────┐    ┌─────────────────┐                   │
-│  │   Handler    │───>│ Lottery Service │                   │
-│  │ (Scheduled)  │    │                 │                   │
-│  └──────────────┘    └────────┬────────┘                   │
-│                               │                             │
-│                      ┌────────┴────────┐                    │
-│                      │                 │                    │
-│               ┌──────▼──────┐   ┌─────▼──────┐            │
-│               │  Preference │   │  Lottery   │            │
-│               │   Parser    │   │ Automation │            │
-│               │  (OpenAI)   │   │(Playwright)│            │
-│               └─────────────┘   └────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-                      │                      │
-                      │                      │
-                ┌─────▼──────┐         ┌────▼─────────┐
-                │  OpenAI    │         │  Broadway    │
-                │  GPT-4 API │         │  Lottery     │
-                └────────────┘         │  Websites    │
-                                       └──────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                     Vercel Edge Network                          │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                    Next.js Frontend                       │  │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │  │
+│  │  │  Dashboard   │  │ Credentials  │  │  Components  │   │  │
+│  │  │     Page     │  │     Page     │  │   & Styles   │   │  │
+│  │  └──────────────┘  └──────────────┘  └──────────────┘   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │              Next.js API Routes (Serverless)              │  │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────┐   │  │
+│  │  │  shows  │ │override │ │  parse  │ │credentials  │   │  │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────┘   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+│                              ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │                  Backend Services                         │  │
+│  │  ┌──────────────┐    ┌─────────────────┐                │  │
+│  │  │  Preference  │───>│ Lottery Service │                │  │
+│  │  │   Parser     │    │                 │                │  │
+│  │  │  (OpenAI)    │    └────────┬────────┘                │  │
+│  │  └──────────────┘             │                          │  │
+│  │                        ┌──────▼──────┐                   │  │
+│  │                        │  Lottery    │                   │  │
+│  │                        │ Automation  │                   │  │
+│  │                        │(Playwright) │                   │  │
+│  │                        └─────────────┘                   │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                              │                                   │
+└──────────────────────────────┼───────────────────────────────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              │                │                │
+       ┌──────▼──────┐  ┌─────▼──────┐  ┌─────▼──────┐
+       │ Vercel KV   │  │  OpenAI    │  │  Broadway  │
+       │   (Redis)   │  │  GPT-4 API │  │  Lottery   │
+       │             │  │            │  │  Websites  │
+       └─────────────┘  └────────────┘  └────────────┘
+        Overrides &        AI Parsing      Automation
+        Credentials                        Target
 ```
 
 ## Core Components
+
+### Frontend Components
+
+#### 1. Dashboard Page (`pages/index.tsx`)
+
+**Purpose**: Main user interface for managing shows and preferences.
+
+**Features**:
+- Display all available Broadway shows
+- Show preference matching status (checkmark or cross)
+- Manual override toggle buttons
+- Preference input and parsing
+- Action buttons (refresh, parse, apply)
+
+**State Management**:
+- User ID and preferences (local state)
+- Shows list with preference matching
+- Loading and message states
+
+#### 2. Credentials Page (`pages/credentials.tsx`)
+
+**Purpose**: Manage platform login credentials.
+
+**Features**:
+- Add new credentials with platform selection
+- View all credentials by platform
+- Delete credentials
+- Encrypted password storage
+
+**Security**:
+- Passwords never displayed after storage
+- Encrypted before sending to API
+- Multiple accounts per platform support
+
+### API Routes (Serverless Functions)
+
+#### 1. `/api/shows` - Show Listing with Preferences
+
+**Method**: GET  
+**Parameters**: 
+- `userId` (required): User identifier
+- `preferences` (optional): Raw preference text
+
+**Response**:
+```typescript
+{
+  shows: ShowWithPreference[]
+}
+```
+
+**Logic**:
+1. Get all active shows from catalog
+2. Fetch user overrides from KV storage
+3. If OpenAI key exists and preferences provided:
+   - Parse preferences with GPT-4
+   - Match each show against preferences
+4. Apply user overrides to final decisions
+5. Return shows with status information
+
+#### 2. `/api/override` - Save User Overrides
+
+**Method**: POST  
+**Body**:
+```json
+{
+  "userId": "string",
+  "showName": "string",
+  "platform": "socialtoaster" | "broadwaydirect",
+  "shouldApply": boolean | null
+}
+```
+
+**Logic**:
+- If `shouldApply` is null: delete override
+- Otherwise: save override to KV storage
+
+#### 3. `/api/parse-preferences` - AI Preference Parsing
+
+**Method**: POST  
+**Body**:
+```json
+{
+  "preferences": "string"
+}
+```
+
+**Response**:
+```typescript
+{
+  parsedPreferences: ParsedPreferences | null,
+  message?: string
+}
+```
+
+**Logic**:
+- If no OpenAI key: return null with message
+- Otherwise: call PreferenceParser service
+
+#### 4. `/api/apply-lotteries` - Apply to Shows
+
+**Method**: POST  
+**Body**:
+```json
+{
+  "userId": "string",
+  "email": "string",
+  "preferences": "string",
+  "firstName": "string",
+  "lastName": "string"
+}
+```
+
+**Logic**:
+1. Create/update user in database
+2. Get matching shows based on preferences and overrides
+3. Initialize lottery automation
+4. Apply to each matching show
+5. Return results
+
+#### 5. `/api/credentials` - Credential Management
+
+**Methods**: GET, POST, DELETE  
+**GET Parameters**: `userId`  
+**POST/DELETE Body**:
+```json
+{
+  "userId": "string",
+  "platform": "socialtoaster" | "broadwaydirect",
+  "email": "string",
+  "password": "string" (POST only)
+}
+```
+
+**Security**: Passwords encrypted before storage
+
+#### 6. `/api/refresh-shows` - Refresh Show Catalog
+
+**Method**: POST  
+**Response**: Current show catalog
+
+**Note**: Placeholder for future scraping implementation
+
+### Backend Services
 
 ### 1. User Database (`src/database.ts`)
 
@@ -43,8 +208,8 @@ Haman is a Broadway lottery automation system that combines AI-powered preferenc
 - Store user preferences (both raw text and parsed)
 - Generate unique user IDs
 
-**Current Implementation**: In-memory Map
-**Production Recommendation**: Use AWS DynamoDB or PostgreSQL RDS
+**Current Implementation**: In-memory Map  
+**Production**: Can integrate with Vercel Postgres or other databases
 
 ```typescript
 interface User {
@@ -138,33 +303,81 @@ interface Show {
    - Collect results
 3. Return aggregated results
 
-### 6. Lambda Handler (`src/handler.ts`)
+### 6. KV Storage (`src/kvStorage.ts`)
 
-**Purpose**: AWS Lambda entry point for scheduled execution.
+**Purpose**: Persistent storage for user overrides and platform credentials.
 
-**Responsibilities**:
-- Load environment variables
-- Initialize LotteryService
-- Apply for all users
-- Return summary statistics
+**Storage Backend**:
+- **Production**: Vercel KV (Redis)
+- **Development**: In-memory Map (automatic fallback)
 
-**Invocation**: Triggered by CloudWatch Events (cron schedule)
+**Data Stored**:
+
+1. **User Overrides**:
+   - Key pattern: `override:{userId}:{platform}:{showName}`
+   - Value: UserOverride object
+   - Purpose: Permanent manual enable/disable decisions
+
+2. **Platform Credentials**:
+   - Key pattern: `credentials:{userId}:{platform}:{email}`
+   - Value: PlatformCredentials object
+   - Purpose: Encrypted login credentials
+
+**Security Features**:
+- Password encryption before storage
+- Support for multiple accounts per platform
+- Automatic fallback to in-memory storage
+
+**Functions**:
+- `setUserOverride()` - Save show override
+- `getUserOverride()` - Get single override
+- `getAllUserOverrides()` - Get all overrides for user
+- `deleteUserOverride()` - Remove override
+- `savePlatformCredentials()` - Store encrypted credentials
+- `getPlatformCredentials()` - Retrieve credentials
+- `getDecryptedPassword()` - Decrypt stored password
+
+### 7. Legacy Lambda Handler (`src/handler.ts`)
+
+**Purpose**: AWS Lambda entry point (legacy, kept for backward compatibility).
+
+**Note**: With the new Vercel-based architecture, this is no longer the primary entry point. The Next.js API routes handle all web requests.
 
 ## Data Flow
 
-### User Registration Flow
+### Web Interface User Flow
 ```
-1. User provides email and preferences text
-2. LotteryService.createUser()
-3. User saved to database
-4. PreferenceParser.parsePreferences() called
-5. OpenAI GPT-4 processes text
-6. Parsed preferences stored with user
+1. User visits dashboard at /
+2. Frontend loads and fetches shows via GET /api/shows
+3. Shows displayed with preference matching status
+4. User can:
+   a. Enter preferences and click "Parse Preferences"
+      → POST /api/parse-preferences
+      → OpenAI parses text
+      → Shows refresh with new matches
+   
+   b. Toggle show overrides
+      → Click enable/disable button
+      → POST /api/override
+      → Override saved to Vercel KV
+      → Show status updates immediately
+   
+   c. Manage credentials
+      → Navigate to /credentials
+      → GET /api/credentials (load existing)
+      → POST /api/credentials (add new)
+      → DELETE /api/credentials (remove)
+   
+   d. Apply to lotteries
+      → Click "Apply to Lotteries"
+      → POST /api/apply-lotteries
+      → Backend processes each matching show
+      → Results displayed to user
 ```
 
-### Lottery Application Flow
+### Legacy Flow (Command Line/Scheduled)
 ```
-1. Lambda triggered by schedule
+1. Lambda triggered by schedule (or manual invocation)
 2. Handler calls LotteryService.applyForAllUsers()
 3. For each user:
    a. Get matching shows using PreferenceParser.matchesPreferences()
@@ -177,6 +390,32 @@ interface Show {
       - Capture result
    e. Cleanup browser resources
 4. Return aggregated results
+```
+
+### Override Decision Flow
+```
+1. User views show on dashboard
+2. System determines final decision:
+   
+   IF user has manual override for this show:
+      ✓ Use override value (true/false)
+   
+   ELSE IF OpenAI API key is configured AND preferences provided:
+      ✓ Use AI matching result
+   
+   ELSE:
+      ✗ Default to disabled (no OpenAI = no automatic matches)
+   
+3. Show displays with appropriate icon:
+   - ✓ Green checkmark if enabled
+   - ✗ Red cross if disabled
+   
+4. Status text shows reason:
+   - "Manually Enabled" (override = true)
+   - "Manually Disabled" (override = false)
+   - "Matches Preferences" (AI match, no override)
+   - "Does Not Match" (AI no match, no override)
+   - "No OpenAI - Disabled by default" (no API key)
 ```
 
 ## Anti-Detection Measures
