@@ -14,6 +14,21 @@ function randomDelay(min = 300, max = 800) {
 }
 
 /**
+ * Fetch the user's public IP address
+ * Returns a promise that resolves to the IP address string, or null if unavailable
+ */
+async function fetchUserIP() {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip || null;
+  } catch (error) {
+    console.log('Haman: Could not fetch IP address', error);
+    return null;
+  }
+}
+
+/**
  * Type text into an input field with human-like delays
  */
 async function typeText(element, text) {
@@ -350,7 +365,7 @@ async function handleModalElement(modal) {
 
 /**
  * Find form elements on BroadwayDirect
- * BroadwayDirect lottery form includes: first name, last name, quantity, email, DOB, zip, country, terms, recaptcha
+ * BroadwayDirect lottery form includes: first name, last name, quantity, email, DOB, zip, country, ip, terms, recaptcha
  * @param {Element} context - Optional context element (e.g., modal) to search within
  */
 function findBroadwayDirectElements(context = document) {
@@ -409,6 +424,11 @@ function findBroadwayDirectElements(context = document) {
     'select[name="dlslot_country"], select[name="country"], select[id*="country" i]'
   );
 
+  // IP address input (required by some BroadwayDirect forms)
+  const ipInput = context.querySelector(
+    'input[name="ip"], input[name="dlslot_ip"], input[id*="ip" i][type="text"], input[id*="ip" i][type="hidden"]'
+  );
+
   // Terms and conditions checkbox
   const termsCheckbox = context.querySelector(
     'input[name="dlslot_agree"], input[name="agree"], input[name="terms"], ' +
@@ -421,8 +441,8 @@ function findBroadwayDirectElements(context = document) {
   // but we can click on the iframe itself which will trigger the reCAPTCHA
   let recaptchaElement = null;
   
-  // First, try to find reCAPTCHA iframe
-  const recaptchaIframe = context.querySelector('iframe[src*="google.com/recaptcha"]');
+  // First, try to find reCAPTCHA iframe - check both title and src attributes
+  const recaptchaIframe = context.querySelector('iframe[src*="recaptcha"], iframe[title*="recaptcha" i]');
   if (recaptchaIframe) {
     // Return the iframe itself - clicking it will trigger reCAPTCHA
     recaptchaElement = recaptchaIframe;
@@ -458,6 +478,7 @@ function findBroadwayDirectElements(context = document) {
     dobYearInput,
     zipInput,
     countrySelect,
+    ipInput,
     termsCheckbox,
     recaptchaElement,
     submitButton 
@@ -627,6 +648,20 @@ async function fillBroadwayDirectForm(elements, data) {
     }
   }
 
+  // Fill IP address field if present
+  if (elements.ipInput) {
+    console.log('Haman: IP field detected, fetching user IP...');
+    const userIP = await fetchUserIP();
+    if (userIP) {
+      console.log('Haman: Filling IP address field');
+      await typeText(elements.ipInput, userIP);
+      await randomDelay(200, 400);
+      filledFields++;
+    } else {
+      console.log('Haman: Could not fetch IP address');
+    }
+  }
+
   // Check terms and conditions
   if (elements.termsCheckbox && !elements.termsCheckbox.checked) {
     console.log('Haman: Checking terms and conditions');
@@ -636,9 +671,13 @@ async function fillBroadwayDirectForm(elements, data) {
   }
 
   // Try to click reCAPTCHA if found
+  // Wait a bit longer after filling other elements before clicking recaptcha
   if (elements.recaptchaElement) {
     console.log('Haman: Attempting to click reCAPTCHA');
     try {
+      // Wait longer before clicking recaptcha to allow form to settle
+      await randomDelay(800, 1200);
+      
       // Scroll the element into view and click
       elements.recaptchaElement.scrollIntoView({ behavior: 'auto', block: 'center' });
       await randomDelay(300, 500);
@@ -1037,6 +1076,12 @@ function createHamanButton() {
   // Check if there are multiple lottery buttons on the page
   const allButtons = findAllEnterNowButtons();
   const hasMultipleLotteries = allButtons.length > 1;
+
+  // If no open lotteries, don't show the button at all
+  if (allButtons.length === 0) {
+    console.log('Haman: No open lotteries found, not showing button');
+    return;
+  }
 
   // Create main button
   const button = document.createElement('button');
