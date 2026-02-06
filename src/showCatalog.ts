@@ -176,7 +176,8 @@ export function getBroadwayShowsSync(): Show[] {
 
 /**
  * Legacy export for backwards compatibility
- * @deprecated Use getBroadwayShows() or getBroadwayShowsSync() instead
+ * @deprecated Use getBroadwayShows() or getBroadwayShowsSync() instead.
+ * This export will be removed in v2.0.0. Please migrate to the new async API.
  */
 export const BROADWAY_SHOWS = FALLBACK_SHOWS;
 

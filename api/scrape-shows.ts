@@ -7,6 +7,10 @@ import { Show } from '../src/types';
  * This scrapes LuckySeat and BroadwayDirect to get current lottery offerings
  */
 
+// NYC coordinates (Broadway location) for geolocation
+const NYC_LATITUDE = 40.730610;
+const NYC_LONGITUDE = -73.935242;
+
 // Realistic user agents for scraping
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -38,7 +42,7 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
       viewport: { width: 1920, height: 1080 },
       locale: 'en-US',
       timezoneId: 'America/New_York',
-      geolocation: { longitude: -73.935242, latitude: 40.730610 },
+      geolocation: { longitude: NYC_LONGITUDE, latitude: NYC_LATITUDE },
       permissions: ['geolocation']
     });
 
@@ -96,7 +100,7 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
               extractedShows.push({
                 name,
                 url: href.startsWith('http') ? href : `https://www.luckyseat.com${href}`,
-                genre: 'musical' // Default - could be extracted from page metadata
+                genre: 'musical' // Fallback to 'musical' since most Broadway lotteries are for musicals
               });
             }
           }
@@ -145,7 +149,7 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
       viewport: { width: 1920, height: 1080 },
       locale: 'en-US',
       timezoneId: 'America/New_York',
-      geolocation: { longitude: -73.935242, latitude: 40.730610 },
+      geolocation: { longitude: NYC_LONGITUDE, latitude: NYC_LATITUDE },
       permissions: ['geolocation']
     });
 
@@ -201,7 +205,7 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
               extractedShows.push({
                 name,
                 url: href.startsWith('http') ? href : `https://lottery.broadwaydirect.com${href}`,
-                genre: 'musical' // Default
+                genre: 'musical' // Fallback to 'musical' since most Broadway lotteries are for musicals
               });
             }
           }
