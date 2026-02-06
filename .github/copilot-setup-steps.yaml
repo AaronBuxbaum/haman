@@ -19,7 +19,7 @@ setup_steps:
 
   - name: Run tests
     command: npm test
-    description: Run Jest test suite with Bun test runner
+    description: Run test suite using Bun test runner
 
   - name: Run linter
     command: npm run lint

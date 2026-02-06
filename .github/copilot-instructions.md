@@ -14,7 +14,7 @@ Haman is a Broadway lottery automation system that combines AI-powered preferenc
 ## Architecture Overview
 
 ### Core Components
-1. **User Database** (`src/database.ts`): User management with in-memory storage and Vercel KV support
+1. **User Database** (`src/database.ts`): User management with in-memory storage (development) and Vercel KV support (production)
 2. **Preference Parser** (`src/preferenceParser.ts`): AI-powered parsing of user preferences using GPT-4
 3. **Lottery Automation** (`src/lotteryAutomation.ts`): Playwright-based automation with anti-detection
 4. **Show Catalog** (`src/showCatalog.ts`): Broadway show listings and lottery URLs (dynamically scraped)
