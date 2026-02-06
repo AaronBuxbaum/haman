@@ -1,13 +1,16 @@
 {
   "name": "haman",
   "version": "1.0.0",
-  "description": "Broadway lottery automation system with user preferences",
+  "description": "Broadway lottery automation Chrome extension with AI-powered preference matching",
   "main": "dist/index.js",
   "scripts": {
-    "build": "next build",
+    "build": "npm run build:extension",
+    "build:extension": "cd extension && bash build.sh",
+    "build:legacy": "next build",
     "dev": "next dev",
     "start": "next start",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern extension/dist",
+    "lint:extension": "eslint extension --ext .ts --ignore-pattern extension/dist",
     "test": "bun test",
     "deploy": "vercel --prod"
   },
@@ -15,7 +18,7 @@
     "broadway",
     "lottery",
     "automation",
-    "playwright"
+    "chrome-extension"
   ],
   "author": "",
   "license": "MIT",
