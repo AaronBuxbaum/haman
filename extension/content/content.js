@@ -164,19 +164,24 @@ function waitForElement(selector, timeout = 5000) {
 
 /**
  * Wait for and detect a modal/popup to appear after clicking "Enter Now"
- * Returns the modal container element or null
+ * Returns the modal container element or iframe's contentDocument, or null
  */
 async function waitForModal(timeout = 5000) {
   // Common modal selectors used by lottery sites
   const modalSelectors = [
-    '.modal.show',          // Bootstrap modal
-    '.modal.in',            // Bootstrap 3 modal
-    '[role="dialog"]',      // ARIA dialog
-    '.popup-content',       // Custom popup
-    '#lottery-modal',       // Specific lottery modal
-    '.fancybox-container',  // Fancybox modal library
-    '.mfp-content',         // Magnific Popup library
-    'iframe[src*="enter-lottery"]', // If it's in an iframe
+    '.modal.show',                    // Bootstrap modal
+    '.modal.in',                      // Bootstrap 3 modal
+    '[role="dialog"]',                // ARIA dialog
+    '.popup-content',                 // Custom popup
+    '#lottery-modal',                 // Specific lottery modal
+    '.lottery-popup',                 // Lottery-specific popup
+    '.fancybox-container',            // Fancybox modal library
+    '.mfp-content',                   // Magnific Popup library
+    '.colorbox',                      // Colorbox modal library
+    'iframe[src*="enter-lottery"]',   // If it's in an iframe
+    'iframe[src*="lottery"]',         // Generic lottery iframe
+    '.dlslot-container',              // BroadwayDirect lottery container
+    '#dlslot-modal',                  // BroadwayDirect modal
   ];
 
   // Try each selector
@@ -184,6 +189,23 @@ async function waitForModal(timeout = 5000) {
     const modal = await waitForElement(selector, timeout);
     if (modal && modal.offsetParent !== null) { // Check if visible
       console.log(`Haman: Detected modal with selector: ${selector}`);
+      
+      // If it's an iframe, return its contentDocument
+      if (modal.tagName === 'IFRAME') {
+        try {
+          const iframeDoc = modal.contentDocument || modal.contentWindow?.document;
+          if (iframeDoc) {
+            console.log('Haman: Accessing iframe content for form filling');
+            // Wait a bit for iframe content to load
+            await randomDelay(500, 1000);
+            return iframeDoc;
+          }
+        } catch (e) {
+          console.log('Haman: Could not access iframe content (cross-origin?)', e);
+          return null;
+        }
+      }
+      
       return modal;
     }
   }
