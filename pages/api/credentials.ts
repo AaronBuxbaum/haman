@@ -16,10 +16,22 @@ export const config = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Set CORS headers for all requests
-  // Allow requests from the same origin (Next.js handles this automatically)
-  // For production, this allows the frontend and API to communicate
-  const origin = req.headers.origin || req.headers.referer || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
+  // In Next.js, API routes and pages are typically on the same origin
+  // This handles cases where the origin is explicitly set (e.g., during development or when deployed)
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  
+  // Allow requests from the same host or localhost in development
+  if (origin) {
+    const originUrl = new URL(origin);
+    const isLocalhost = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
+    const isSameHost = host && originUrl.host === host;
+    
+    if (isLocalhost || isSameHost) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
