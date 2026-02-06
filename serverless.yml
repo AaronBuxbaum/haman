@@ -8,7 +8,7 @@ provider:
   memorySize: 1024
   timeout: 300
   environment:
-    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    ANTHROPIC_API_KEY: ${env:ANTHROPIC_API_KEY}
     NODE_ENV: production
 
 functions:
