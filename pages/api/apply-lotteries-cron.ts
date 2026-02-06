@@ -1,15 +1,19 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { LotteryService } from '../src/lotteryService';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { LotteryService } from '../../src/lotteryService';
 
 /**
- * Vercel serverless function for applying to Broadway lotteries
+ * API endpoint for applying to Broadway lotteries for all users
  * This can be triggered via HTTP request or scheduled via Vercel cron
+ * POST /api/apply-lotteries-cron
+ * 
+ * This endpoint applies to lotteries for ALL users in the system.
+ * For applying to lotteries for a specific user, use /api/apply-lotteries instead.
  */
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
-  console.log('Starting lottery application...');
+  console.log('Starting lottery application for all users...');
   console.log('Request method:', req.method);
 
   // Verify authorization for manual triggers

@@ -1,11 +1,12 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { chromium, Browser } from 'playwright';
-import { Show } from '../src/types';
-import { ScraperFactory } from '../src/scrapers';
+import { Show } from '../../src/types';
+import { ScraperFactory } from '../../src/scrapers';
 
 /**
- * Vercel serverless function for scraping Broadway show catalogs
+ * API endpoint for scraping Broadway show catalogs
  * This scrapes all registered platforms to get current lottery offerings
+ * GET /api/scrape-shows?refresh=true
  */
 
 /**
@@ -17,8 +18,8 @@ let cacheTimestamp: number = 0;
 const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
   console.log('Starting show catalog scraping...');
   console.log('Request method:', req.method);
