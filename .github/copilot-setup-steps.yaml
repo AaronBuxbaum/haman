@@ -1,0 +1,125 @@
+# GitHub Copilot Setup Steps
+# This file helps Copilot understand how to set up and work with this repository
+
+setup_steps:
+  - name: Install dependencies
+    command: npm install
+    description: Install all Node.js dependencies including Playwright, OpenAI SDK, and Next.js
+
+  - name: Set up environment variables
+    description: Create a .env file with required environment variables
+    notes:
+      - "Copy .env.example to .env"
+      - "Add OPENAI_API_KEY (optional - system works without it)"
+      - "Vercel KV variables auto-configured in production"
+
+  - name: Build the project
+    command: npm run build
+    description: Compile TypeScript and build Next.js application
+
+  - name: Run tests
+    command: npm test
+    description: Run test suite using Bun test runner
+
+  - name: Run linter
+    command: npm run lint
+    description: Run ESLint to check code quality and style
+
+  - name: Start development server
+    command: npm run dev
+    description: Start Next.js development server on http://localhost:3000
+
+development_commands:
+  build: npm run build
+  test: npm test
+  lint: npm run lint
+  dev: npm run dev
+  deploy: npm run deploy
+
+required_tools:
+  - name: Node.js
+    version: "18+"
+    description: JavaScript runtime
+
+  - name: npm
+    description: Node package manager
+
+  - name: Vercel CLI
+    optional: true
+    install: npm install -g vercel
+    description: For deployment to Vercel
+
+environment_variables:
+  - name: OPENAI_API_KEY
+    required: false
+    description: OpenAI API key for AI-powered preference parsing (optional)
+
+  - name: NODE_ENV
+    required: false
+    default: development
+    description: Environment mode (development/production)
+
+  - name: KV_URL
+    required: false
+    description: Vercel KV connection URL (auto-configured in Vercel)
+
+  - name: KV_REST_API_URL
+    required: false
+    description: Vercel KV REST API URL (auto-configured in Vercel)
+
+  - name: KV_REST_API_TOKEN
+    required: false
+    description: Vercel KV auth token (auto-configured in Vercel)
+
+project_structure:
+  - path: src/
+    description: Core TypeScript source code (automation, services, utilities)
+
+  - path: pages/
+    description: Next.js pages and API routes
+
+  - path: api/
+    description: API route handlers (shows, preferences, lotteries)
+
+  - path: .github/
+    description: GitHub configuration including Copilot instructions and workflows
+
+  - path: .github/copilot-instructions.md
+    description: Main Copilot instructions for the repository
+
+  - path: .github/agents/
+    description: Custom agent definitions for specialized tasks
+
+testing:
+  framework: Bun Test (Jest-compatible)
+  test_pattern: "**/*.test.ts"
+  coverage_command: npm test -- --coverage
+  notes:
+    - "Tests should be isolated and repeatable"
+    - "Mock external dependencies (OpenAI, Playwright)"
+    - "Follow existing test patterns in the repository"
+
+linting:
+  framework: ESLint
+  config: .eslintrc.json
+  command: npm run lint
+  notes:
+    - "TypeScript strict mode enabled"
+    - "No explicit 'any' types"
+    - "Follow Next.js and TypeScript ESLint rules"
+
+deployment:
+  platform: Vercel
+  command: npm run deploy
+  production_url: https://haman.vercel.app
+  notes:
+    - "Automatic deployments via GitHub Actions"
+    - "Preview deployments for pull requests"
+    - "Production deployments on main branch merge"
+
+important_notes:
+  - "Anti-detection measures in automation code are intentional - do not remove"
+  - "Random delays and human-like behavior are critical for lottery applications"
+  - "Never commit sensitive information (API keys, credentials)"
+  - "System works without OpenAI API key - all shows disabled by default"
+  - "Use manual overrides for full control without AI parsing"
