@@ -27,7 +27,7 @@ async function typeText(element, text) {
   for (const char of text) {
     element.value += char;
     element.dispatchEvent(new Event('input', { bubbles: true }));
-    await randomDelay(30, 100);
+    await randomDelay(15, 50); // Doubled speed: was 30-100ms, now 15-50ms
   }
 
   element.dispatchEvent(new Event('change', { bubbles: true }));
@@ -52,6 +52,26 @@ async function selectOption(selectElement, value) {
   selectElement.value = value;
   selectElement.dispatchEvent(new Event('change', { bubbles: true }));
   await randomDelay(100, 200);
+}
+
+/**
+ * Map country names/codes to BroadwayDirect numeric values
+ * BroadwayDirect uses: 2=USA, 3=CANADA, 5=OTHER
+ */
+function mapCountryToValue(country) {
+  if (!country) return null;
+  
+  const countryUpper = country.toUpperCase();
+  
+  // Handle common country formats
+  if (countryUpper === 'US' || countryUpper === 'USA' || countryUpper === 'UNITED STATES') {
+    return '2';
+  }
+  if (countryUpper === 'CA' || countryUpper === 'CANADA') {
+    return '3';
+  }
+  // Default to OTHER for any other country
+  return '5';
 }
 
 /**
@@ -295,15 +315,24 @@ function findBroadwayDirectElements(context = document) {
     'input[id*="email" i], input[placeholder*="email" i]'
   );
 
-  // Date of birth fields (month, day, year dropdowns or single input)
+  // Date of birth fields (month, day, year dropdowns or text inputs)
   const dobMonthSelect = context.querySelector(
     'select[name="dlslot_dob_month"], select[name="dob_month"], select[id*="month" i]'
+  );
+  const dobMonthInput = context.querySelector(
+    'input[name="dlslot_dob_month"], input[name="dob_month"], input[id*="dob_month" i]'
   );
   const dobDaySelect = context.querySelector(
     'select[name="dlslot_dob_day"], select[name="dob_day"], select[id*="day" i]'
   );
+  const dobDayInput = context.querySelector(
+    'input[name="dlslot_dob_day"], input[name="dob_day"], input[id*="dob_day" i]'
+  );
   const dobYearSelect = context.querySelector(
     'select[name="dlslot_dob_year"], select[name="dob_year"], select[id*="year" i]'
+  );
+  const dobYearInput = context.querySelector(
+    'input[name="dlslot_dob_year"], input[name="dob_year"], input[id*="dob_year" i]'
   );
 
   // Zip code input
@@ -325,9 +354,25 @@ function findBroadwayDirectElements(context = document) {
   );
 
   // reCAPTCHA checkbox (if accessible - often in iframe)
-  const recaptchaCheckbox = context.querySelector(
+  // Try to find reCAPTCHA iframe and access its content
+  let recaptchaCheckbox = context.querySelector(
     '.recaptcha-checkbox, #recaptcha-anchor, .rc-anchor-checkbox'
   );
+  
+  // If not found directly, try to find it in the reCAPTCHA iframe
+  if (!recaptchaCheckbox) {
+    const recaptchaIframe = context.querySelector('iframe[src*="google.com/recaptcha"]');
+    if (recaptchaIframe) {
+      try {
+        const iframeDoc = recaptchaIframe.contentDocument || recaptchaIframe.contentWindow?.document;
+        if (iframeDoc) {
+          recaptchaCheckbox = iframeDoc.querySelector('#recaptcha-anchor, .recaptcha-checkbox');
+        }
+      } catch (e) {
+        console.log('Haman: Could not access reCAPTCHA iframe (cross-origin restriction)', e);
+      }
+    }
+  }
 
   // Submit button - look for "Enter" button specifically
   const submitButton = context.querySelector(
@@ -343,8 +388,11 @@ function findBroadwayDirectElements(context = document) {
     ticketQuantitySelect,
     emailInput, 
     dobMonthSelect,
+    dobMonthInput,
     dobDaySelect,
+    dobDayInput,
     dobYearSelect,
+    dobYearInput,
     zipInput,
     countrySelect,
     termsCheckbox,
@@ -424,35 +472,59 @@ async function fillBroadwayDirectForm(elements, data) {
   if (data.dateOfBirth) {
     const [year, month, day] = data.dateOfBirth.split('-');
     
-    if (elements.dobMonthSelect && month) {
-      console.log('Haman: Selecting birth month');
-      // Try both formats: with and without leading zero
-      const monthVal = parseInt(month, 10).toString();
-      const monthValPadded = month.padStart(2, '0');
-      const optionFound = trySelectOption(elements.dobMonthSelect, [monthVal, monthValPadded, month]);
-      if (optionFound) {
+    // Handle month (select dropdown or text input)
+    if (month) {
+      if (elements.dobMonthSelect) {
+        console.log('Haman: Selecting birth month (dropdown)');
+        // Try both formats: with and without leading zero
+        const monthVal = parseInt(month, 10).toString();
+        const monthValPadded = month.padStart(2, '0');
+        const optionFound = trySelectOption(elements.dobMonthSelect, [monthVal, monthValPadded, month]);
+        if (optionFound) {
+          await randomDelay(150, 300);
+          filledFields++;
+        }
+      } else if (elements.dobMonthInput) {
+        console.log('Haman: Typing birth month (text input)');
+        await typeText(elements.dobMonthInput, month.padStart(2, '0'));
         await randomDelay(150, 300);
         filledFields++;
       }
     }
 
-    if (elements.dobDaySelect && day) {
-      console.log('Haman: Selecting birth day');
-      // Try both formats: with and without leading zero
-      const dayVal = parseInt(day, 10).toString();
-      const dayValPadded = day.padStart(2, '0');
-      const optionFound = trySelectOption(elements.dobDaySelect, [dayVal, dayValPadded, day]);
-      if (optionFound) {
+    // Handle day (select dropdown or text input)
+    if (day) {
+      if (elements.dobDaySelect) {
+        console.log('Haman: Selecting birth day (dropdown)');
+        // Try both formats: with and without leading zero
+        const dayVal = parseInt(day, 10).toString();
+        const dayValPadded = day.padStart(2, '0');
+        const optionFound = trySelectOption(elements.dobDaySelect, [dayVal, dayValPadded, day]);
+        if (optionFound) {
+          await randomDelay(150, 300);
+          filledFields++;
+        }
+      } else if (elements.dobDayInput) {
+        console.log('Haman: Typing birth day (text input)');
+        await typeText(elements.dobDayInput, day.padStart(2, '0'));
         await randomDelay(150, 300);
         filledFields++;
       }
     }
 
-    if (elements.dobYearSelect && year) {
-      console.log('Haman: Selecting birth year');
-      await selectOption(elements.dobYearSelect, year);
-      await randomDelay(150, 300);
-      filledFields++;
+    // Handle year (select dropdown or text input)
+    if (year) {
+      if (elements.dobYearSelect) {
+        console.log('Haman: Selecting birth year (dropdown)');
+        await selectOption(elements.dobYearSelect, year);
+        await randomDelay(150, 300);
+        filledFields++;
+      } else if (elements.dobYearInput) {
+        console.log('Haman: Typing birth year (text input)');
+        await typeText(elements.dobYearInput, year);
+        await randomDelay(150, 300);
+        filledFields++;
+      }
     }
   }
 
@@ -467,9 +539,29 @@ async function fillBroadwayDirectForm(elements, data) {
   // Select country
   if (elements.countrySelect && data.country) {
     console.log('Haman: Selecting country');
-    await selectOption(elements.countrySelect, data.country);
-    await randomDelay(200, 400);
-    filledFields++;
+    // Map country name/code to numeric value (e.g., US -> 2, CANADA -> 3, OTHER -> 5)
+    const countryValue = mapCountryToValue(data.country);
+    
+    // Try the mapped value first, then fall back to the original value
+    const possibleValues = [countryValue, data.country];
+    if (data.country) {
+      possibleValues.push(data.country.toUpperCase());
+    }
+    const optionFound = trySelectOption(elements.countrySelect, possibleValues);
+    
+    if (optionFound) {
+      await randomDelay(200, 400);
+      filledFields++;
+    } else {
+      console.log('Haman: Could not find matching country option, trying first available');
+      // If no match found, try to select any available option as fallback
+      if (elements.countrySelect.options.length > 1) {
+        elements.countrySelect.value = elements.countrySelect.options[1].value;
+        elements.countrySelect.dispatchEvent(new Event('change', { bubbles: true }));
+        await randomDelay(200, 400);
+        filledFields++;
+      }
+    }
   }
 
   // Check terms and conditions
@@ -480,15 +572,21 @@ async function fillBroadwayDirectForm(elements, data) {
     filledFields++;
   }
 
-  // Try to click reCAPTCHA if accessible (usually in iframe, so may not work)
+  // Try to click reCAPTCHA if accessible
   if (elements.recaptchaCheckbox) {
     console.log('Haman: Attempting to click reCAPTCHA');
     try {
-      await clickElement(elements.recaptchaCheckbox);
+      // Scroll the checkbox into view and click (use 'auto' for immediate scroll)
+      elements.recaptchaCheckbox.scrollIntoView({ behavior: 'auto', block: 'center' });
+      await randomDelay(300, 500);
+      elements.recaptchaCheckbox.click();
       await randomDelay(500, 1000);
+      console.log('Haman: reCAPTCHA clicked successfully');
     } catch (e) {
-      console.log('Haman: Could not click reCAPTCHA (likely in iframe)');
+      console.log('Haman: Could not click reCAPTCHA', e);
     }
+  } else {
+    console.log('Haman: reCAPTCHA not found or not accessible (likely in cross-origin iframe)');
   }
 
   return filledFields;
