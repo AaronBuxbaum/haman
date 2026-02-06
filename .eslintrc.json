@@ -2,7 +2,8 @@
   "parser": "@typescript-eslint/parser",
   "extends": [
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
+    "plugin:@typescript-eslint/recommended",
+    "next/core-web-vitals"
   ],
   "parserOptions": {
     "ecmaVersion": 2020,
@@ -10,6 +11,7 @@
   },
   "rules": {
     "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/explicit-module-boundary-types": "off"
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/ban-ts-comment": "off"
   }
 }

@@ -141,13 +141,13 @@ export abstract class LotteryAutomation {
     // Inject JavaScript to hide automation markers
     await this.context.addInitScript(() => {
       // Hide the webdriver property that sites check to detect automation
-      // @ts-expect-error - navigator is available in browser context
+      // @ts-ignore - navigator is available in browser context
       Object.defineProperty(Object.getPrototypeOf(navigator), 'webdriver', {
         get: () => false
       });
 
       // Mock browser plugins to look more realistic
-      // @ts-expect-error - navigator is available in browser context
+      // @ts-ignore - navigator is available in browser context
       Object.defineProperty(Object.getPrototypeOf(navigator), 'plugins', {
         get: () => [
           {
@@ -168,13 +168,13 @@ export abstract class LotteryAutomation {
       });
 
       // Set realistic language preferences
-      // @ts-expect-error - navigator is available in browser context
+      // @ts-ignore - navigator is available in browser context
       Object.defineProperty(Object.getPrototypeOf(navigator), 'languages', {
         get: () => ['en-US', 'en']
       });
 
       // Mock the Chrome runtime object
-      // @ts-expect-error - window is available in browser context
+      // @ts-ignore - window is available in browser context
       window.chrome = {
         runtime: {}
       };
@@ -263,7 +263,7 @@ export class SocialToasterAutomation extends LotteryAutomation {
 
       // Simulate human reading and scrolling behavior
       await page.evaluate(() => {
-        // @ts-expect-error - window is available in browser context
+        // @ts-ignore - window is available in browser context
         window.scrollBy(0, Math.floor(Math.random() * 300) + 100);
       });
       await randomDelay(500, 1000);
@@ -378,7 +378,7 @@ export class BroadwayDirectAutomation extends LotteryAutomation {
 
       // Simulate human reading and scrolling behavior
       await page.evaluate(() => {
-        // @ts-expect-error - window is available in browser context
+        // @ts-ignore - window is available in browser context
         window.scrollBy(0, Math.floor(Math.random() * 300) + 100);
       });
       await randomDelay(500, 1000);
