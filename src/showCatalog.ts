@@ -9,7 +9,7 @@ import { getCachedShows } from './kvStorage';
  * 
  * Shows are cached in the database (Vercel KV) and updated:
  * - On demand via /api/refresh-shows
- * - Automatically via hourly cron job at /api/refresh-shows-cron
+ * - Automatically via daily cron job at /api/refresh-shows-cron (8:00 AM EST)
  * 
  * EXTENSIBILITY NOTES:
  * - Additional lottery platforms can be added by extending the 'platform' type
@@ -17,7 +17,7 @@ import { getCachedShows } from './kvStorage';
  * - New automation classes should be created in lotteryAutomation.ts for each platform
  */
 
-const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours (matches daily cron schedule)
 
 /**
  * Fetch shows from the scraper API
@@ -97,12 +97,12 @@ export async function getBroadwayShows(forceRefresh: boolean = false): Promise<S
 }
 
 /**
- * Synchronous version that returns cached data only
+ * Get cached shows from database only (does not trigger API fetch)
  * @throws Error if no cache is available
- * WARNING: This should only be used when async is not possible.
- * Prefer getBroadwayShows() whenever possible.
+ * Use this when you need immediate access to shows without triggering a scrape.
+ * Prefer getBroadwayShows() whenever possible to ensure fresh data.
  */
-export async function getBroadwayShowsSync(): Promise<Show[]> {
+export async function getBroadwayShowsFromCache(): Promise<Show[]> {
   const cached = await getCachedShows();
   if (cached && cached.shows.length > 0) {
     return cached.shows;
@@ -120,11 +120,11 @@ export async function getActiveShows(): Promise<Show[]> {
 }
 
 /**
- * Get all active shows (synchronous version)
+ * Get all active shows (from cache only)
  * @throws Error if no cache is available
  */
-export async function getActiveShowsSync(): Promise<Show[]> {
-  const shows = await getBroadwayShowsSync();
+export async function getActiveShowsFromCache(): Promise<Show[]> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.filter(show => show.active);
 }
 
@@ -137,11 +137,11 @@ export async function getShowsByPlatform(platform: 'socialtoaster' | 'broadwaydi
 }
 
 /**
- * Get shows by platform (synchronous version)
+ * Get shows by platform (from cache only)
  * @throws Error if no cache is available
  */
-export async function getShowsByPlatformSync(platform: 'socialtoaster' | 'broadwaydirect'): Promise<Show[]> {
-  const shows = await getBroadwayShowsSync();
+export async function getShowsByPlatformFromCache(platform: 'socialtoaster' | 'broadwaydirect'): Promise<Show[]> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.filter(show => show.active && show.platform === platform);
 }
 
@@ -156,11 +156,11 @@ export async function getShowByName(name: string): Promise<Show | undefined> {
 }
 
 /**
- * Get show by name (synchronous version)
+ * Get show by name (from cache only)
  * @throws Error if no cache is available
  */
-export async function getShowByNameSync(name: string): Promise<Show | undefined> {
-  const shows = await getBroadwayShowsSync();
+export async function getShowByNameFromCache(name: string): Promise<Show | undefined> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.find(
     show => show.name.toLowerCase() === name.toLowerCase() && show.active
   );

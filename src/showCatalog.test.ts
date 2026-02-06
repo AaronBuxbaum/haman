@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { 
-  getActiveShowsSync, 
-  getShowsByPlatformSync, 
-  getShowByNameSync,
-  getBroadwayShowsSync
+  getActiveShowsFromCache, 
+  getShowsByPlatformFromCache, 
+  getShowByNameFromCache,
+  getBroadwayShowsFromCache
 } from './showCatalog';
 import { setCachedShows } from './kvStorage';
 import { Show } from './types';
@@ -41,7 +41,7 @@ describe('showCatalog', () => {
 
   describe('getActiveShows', () => {
     test('should return all active shows from cache', async () => {
-      const activeShows = await getActiveShowsSync();
+      const activeShows = await getActiveShowsFromCache();
       expect(activeShows.length).toBeGreaterThan(0);
       expect(activeShows.every(show => show.active)).toBe(true);
     });
@@ -49,14 +49,14 @@ describe('showCatalog', () => {
 
   describe('getShowsByPlatform', () => {
     test('should return only socialtoaster shows', async () => {
-      const shows = await getShowsByPlatformSync('socialtoaster');
+      const shows = await getShowsByPlatformFromCache('socialtoaster');
       expect(shows.length).toBeGreaterThan(0);
       expect(shows.every(show => show.platform === 'socialtoaster')).toBe(true);
       expect(shows.every(show => show.active)).toBe(true);
     });
 
     test('should return only broadwaydirect shows', async () => {
-      const shows = await getShowsByPlatformSync('broadwaydirect');
+      const shows = await getShowsByPlatformFromCache('broadwaydirect');
       expect(shows.length).toBeGreaterThan(0);
       expect(shows.every(show => show.platform === 'broadwaydirect')).toBe(true);
       expect(shows.every(show => show.active)).toBe(true);
@@ -65,26 +65,26 @@ describe('showCatalog', () => {
 
   describe('getShowByName', () => {
     test('should find a show by exact name (case insensitive)', async () => {
-      const show = await getShowByNameSync('Hadestown');
+      const show = await getShowByNameFromCache('Hadestown');
       expect(show).toBeDefined();
       expect(show?.name).toBe('Hadestown');
     });
 
     test('should find a show by lowercase name', async () => {
-      const show = await getShowByNameSync('hadestown');
+      const show = await getShowByNameFromCache('hadestown');
       expect(show).toBeDefined();
       expect(show?.name).toBe('Hadestown');
     });
 
     test('should return undefined for non-existent show', async () => {
-      const show = await getShowByNameSync('NonExistentShow');
+      const show = await getShowByNameFromCache('NonExistentShow');
       expect(show).toBeUndefined();
     });
   });
 
   describe('getBroadwayShows', () => {
     test('should return cached shows when cache is available', async () => {
-      const shows = await getBroadwayShowsSync();
+      const shows = await getBroadwayShowsFromCache();
       expect(shows.length).toBeGreaterThan(0);
       expect(shows.every(show => show.name && show.platform && show.url)).toBe(true);
     });

@@ -10,10 +10,10 @@ import { getCachedShows, setCachedShows } from '../../src/kvStorage';
  * 
  * Shows are cached in the database (Vercel KV) and updated:
  * - On demand via ?refresh=true
- * - Automatically via hourly cron job
+ * - Automatically via daily cron job at 8:00 AM EST
  */
 
-const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours (matches daily cron schedule)
 
 export default async function handler(
   req: NextApiRequest,

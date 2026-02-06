@@ -9,6 +9,8 @@ import { getBroadwayShows } from '../../src/showCatalog';
  * 
  * This endpoint forces a refresh of the show catalog from all platforms
  * and updates the database cache.
+ * 
+ * Scheduled to run daily at 8:00 AM EST (for Hobby plan compatibility)
  */
 
 /**
