@@ -6,7 +6,40 @@ import { savePlatformCredentials, getPlatformCredentials, deletePlatformCredenti
  * POST /api/credentials - Save platform credentials
  * DELETE /api/credentials - Delete platform credentials
  */
+
+// Explicit API route configuration to ensure body parsing is enabled
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Set CORS headers for all requests
+  // In Next.js, API routes and pages are typically on the same origin
+  // This handles cases where the origin is explicitly set (e.g., during development or when deployed)
+  const origin = req.headers.origin;
+  const host = req.headers.host;
+  
+  // Allow requests from the same host or localhost in development
+  if (origin) {
+    const originUrl = new URL(origin);
+    const isLocalhost = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
+    const isSameHost = host && originUrl.host === host;
+    
+    if (isLocalhost || isSameHost) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     const { userId } = req.query;
 
