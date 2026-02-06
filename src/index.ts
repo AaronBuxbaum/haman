@@ -28,7 +28,7 @@ async function main() {
   console.log('Parsed preferences:', user.parsedPreferences);
 
   // Get matching shows
-  const matchingShows = service.getMatchingShows(user);
+  const matchingShows = await service.getMatchingShows(user);
   console.log('\nMatching shows:', matchingShows.map(s => s.name));
 
   // Apply to lotteries
