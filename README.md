@@ -5,7 +5,7 @@ An automated Broadway show lottery application system that uses AI to parse user
 ## Features
 
 - **User Accounts**: Create accounts with free-text descriptions of show preferences
-- **AI-Powered Parsing**: Uses OpenAI GPT-4 to parse user preferences into structured data
+- **AI-Powered Parsing**: Uses Anthropic Claude 3.5 Sonnet to parse user preferences into structured data
 - **Automated Applications**: Uses Playwright to automatically apply to Broadway show lotteries
 - **Multi-Platform Support**: Supports both SocialToaster and BroadwayDirect lottery platforms
 - **Serverless Architecture**: Runs on AWS Lambda with scheduled triggers for optimal timing
@@ -16,7 +16,7 @@ An automated Broadway show lottery application system that uses AI to parse user
 
 - Node.js 18+ and npm
 - AWS CLI configured (for deployment)
-- OpenAI API key
+- Anthropic API key
 
 ### Installation
 
@@ -31,9 +31,9 @@ cd haman
 npm install
 ```
 
-3. Create a `.env` file with your OpenAI API key:
+3. Create a `.env` file with your Anthropic API key:
 ```bash
-OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 ```
 
 4. Build the project:
@@ -52,7 +52,7 @@ npm run dev
 
 This will:
 1. Create an example user with preferences
-2. Parse preferences using GPT-4
+2. Parse preferences using Claude
 3. Find matching shows
 4. Apply to lotteries (in test mode)
 
@@ -87,11 +87,11 @@ Add the following secrets to your GitHub repository settings:
 - `VERCEL_TOKEN`: Your Vercel authentication token
 - `VERCEL_ORG_ID`: Your Vercel organization ID
 - `VERCEL_PROJECT_ID`: Your Vercel project ID
-- `OPENAI_API_KEY`: Your OpenAI API key
+- `ANTHROPIC_API_KEY`: Your Anthropic API key
 
 ##### Environment Variables in Vercel
 Set these environment variables in your Vercel project settings:
-- `OPENAI_API_KEY`: Your OpenAI API key
+- `ANTHROPIC_API_KEY`: Your Anthropic API key
 - `CRON_SECRET`: A secure random string for protecting the cron endpoint
 
 The deployment workflow will automatically deploy:
@@ -111,7 +111,7 @@ The Vercel deployment includes scheduled cron jobs that run:
    - In-memory storage (replace with DynamoDB/PostgreSQL in production)
 
 2. **Preference Parser** (`src/preferenceParser.ts`)
-   - Uses OpenAI GPT-4 to parse free-text preferences
+   - Uses Anthropic Claude to parse free-text preferences
    - Extracts: genres, show names, price ranges, date ranges, exclusions
 
 3. **Lottery Automation** (`src/lotteryAutomation.ts`)
@@ -190,7 +190,7 @@ The system uses AWS Lambda with scheduled triggers:
 
 ## Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (required)
 - `NODE_ENV`: Environment (production/development)
 
 ## Future Enhancements

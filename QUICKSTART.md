@@ -6,7 +6,7 @@ This guide will help you get started with the Broadway Lottery Automation system
 
 - Node.js 18 or higher
 - npm
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- Anthropic API key ([Get one here](https://console.anthropic.com/))
 - AWS account (for deployment only)
 
 ## Installation
@@ -27,9 +27,9 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Edit `.env` and add your Anthropic API key:
 ```
-OPENAI_API_KEY=sk-your-actual-api-key-here
+ANTHROPIC_API_KEY=sk-ant-your-actual-api-key-here
 ```
 
 4. **Build the project**
@@ -47,7 +47,7 @@ npm run dev
 
 This will:
 1. Create an example user with preferences: "I love musicals, especially Hamilton and Wicked"
-2. Parse preferences using GPT-4
+2. Parse preferences using Claude
 3. Find matching shows from the catalog
 4. (In simulation mode) Apply to matching lotteries
 
@@ -237,7 +237,7 @@ npm install
 npm run build
 ```
 
-### "OPENAI_API_KEY not found"
+### "ANTHROPIC_API_KEY not found"
 Make sure `.env` file exists and contains your API key.
 
 ### Build errors

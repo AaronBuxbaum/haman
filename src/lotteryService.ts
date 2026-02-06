@@ -11,9 +11,9 @@ export class LotteryService {
   private userDb: UserDatabase;
   private preferenceParser: PreferenceParser;
 
-  constructor(openaiApiKey: string) {
+  constructor(anthropicApiKey: string) {
     this.userDb = new UserDatabase();
-    this.preferenceParser = new PreferenceParser(openaiApiKey);
+    this.preferenceParser = new PreferenceParser(anthropicApiKey);
   }
 
   /**

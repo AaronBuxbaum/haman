@@ -29,7 +29,7 @@ When you connect a GitHub repository to Vercel using the official Vercel for Git
    - No need for custom build steps in GitHub Actions
 
 4. **Environment Variables**
-   - Environment variables are managed in Vercel's dashboard
+   - Environment variables are managed in Vercel's dashboard (e.g., `ANTHROPIC_API_KEY`)
    - Automatically injected during builds
    - Can be scoped to production, preview, or development environments
 
@@ -97,7 +97,7 @@ You would only need a custom GitHub Actions workflow if you have **additional re
    - Vercel will automatically detect the framework and configure builds
 
 2. Configure environment variables in Vercel dashboard:
-   - `OPENAI_API_KEY` - Your OpenAI API key
+   - `ANTHROPIC_API_KEY` - Your Anthropic API key
    - `CRON_SECRET` - Secret for protecting cron endpoints
    - Any other environment-specific variables
 

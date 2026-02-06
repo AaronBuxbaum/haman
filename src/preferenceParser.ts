@@ -1,15 +1,15 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { ParsedPreferences } from './types';
 
 export class PreferenceParser {
-  private openai: OpenAI;
+  private anthropic: Anthropic;
 
   constructor(apiKey: string) {
-    this.openai = new OpenAI({ apiKey });
+    this.anthropic = new Anthropic({ apiKey });
   }
 
   /**
-   * Parse user's free-text preferences using ChatGPT
+   * Parse user's free-text preferences using Claude
    */
   async parsePreferences(preferencesText: string): Promise<ParsedPreferences> {
     const systemPrompt = `You are a helpful assistant that parses user preferences for Broadway show lotteries.
@@ -26,22 +26,31 @@ Return ONLY a valid JSON object with these fields. If a field is not mentioned, 
     const userPrompt = `Parse this preference text: "${preferencesText}"`;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4',
+      const response = await this.anthropic.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        system: systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        response_format: { type: 'json_object' }
+        ]
       });
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new Error('No response from OpenAI');
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('No text response from Claude');
       }
 
-      const parsed = JSON.parse(content);
+      // Extract JSON from the response - Claude may wrap it in markdown code blocks
+      let jsonText = content.text.trim();
+      
+      // Remove markdown code block formatting if present
+      if (jsonText.startsWith('```json')) {
+        jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+      } else if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+      }
+
+      const parsed = JSON.parse(jsonText);
       return this.normalizePreferences(parsed);
     } catch (error) {
       console.error('Error parsing preferences:', error);

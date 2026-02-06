@@ -1,11 +1,11 @@
 # GitHub Copilot Instructions for Haman Repository
 
 ## Project Overview
-Haman is a Broadway lottery automation system that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries. The system uses OpenAI GPT-4 to parse user preferences and Playwright for browser automation, deployed as serverless functions on AWS Lambda.
+Haman is a Broadway lottery automation system that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries. The system uses Anthropic Claude to parse user preferences and Playwright for browser automation, deployed as serverless functions on AWS Lambda.
 
 **Key Technologies:**
 - **Runtime**: Node.js 20.x with TypeScript
-- **AI**: OpenAI GPT-4 API for natural language preference parsing
+- **AI**: Anthropic Claude API for natural language preference parsing
 - **Automation**: Playwright for browser automation with anti-detection measures
 - **Cloud**: AWS Lambda with serverless framework
 - **Testing**: Jest with ts-jest
@@ -15,7 +15,7 @@ Haman is a Broadway lottery automation system that combines AI-powered preferenc
 
 ### Core Components
 1. **User Database** (`src/database.ts`): User management with in-memory storage
-2. **Preference Parser** (`src/preferenceParser.ts`): AI-powered parsing of user preferences using GPT-4
+2. **Preference Parser** (`src/preferenceParser.ts`): AI-powered parsing of user preferences using Claude
 3. **Lottery Automation** (`src/lotteryAutomation.ts`): Playwright-based automation with anti-detection
 4. **Show Catalog** (`src/showCatalog.ts`): Broadway show listings and lottery URLs
 5. **Lottery Service** (`src/lotteryService.ts`): Main orchestration layer
@@ -28,7 +28,7 @@ See `ARCHITECTURE.md` for detailed system design and data flow diagrams.
 ### Prerequisites
 - Node.js 18+ and npm
 - AWS CLI configured (for deployment)
-- OpenAI API key
+- Anthropic API key
 
 ### Build, Test, and Lint Commands
 ```bash
@@ -42,7 +42,7 @@ npm run deploy       # Deploy to AWS Lambda
 
 ### Environment Variables
 Create a `.env` file with:
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `ANTHROPIC_API_KEY`: Your Anthropic API key (required)
 - `NODE_ENV`: Environment (production/development)
 
 ## Code Style and Best Practices
@@ -71,7 +71,7 @@ Create a `.env` file with:
 ### Writing Tests
 - Write unit tests for all new features
 - Test both success and error paths
-- Mock external dependencies (OpenAI API, browser automation)
+- Mock external dependencies (Anthropic API, browser automation)
 - Use descriptive test names that explain what is being tested
 - Keep tests isolated, fast, and repeatable
 - Follow existing test patterns in the repository
@@ -122,15 +122,15 @@ This project implements browser automation to apply to Broadway lotteries. Anti-
 - **Dependencies**: Playwright requires special Lambda layer or bundling
 - **Environment**: Use environment variables for configuration (never hardcode secrets)
 
-### AI/OpenAI Integration
-- **Model**: Uses GPT-4 with JSON mode for structured output
+### AI/Anthropic Integration
+- **Model**: Uses Claude 3.5 Sonnet for structured output parsing
 - **Prompts**: Preference parsing prompts are carefully crafted - changes may affect accuracy
 - **Error handling**: Always handle API errors gracefully
 - **Cost**: Be mindful of token usage; cache parsed preferences when possible
 
 ### Dependency Management
 - **Playwright**: Browser automation library - version updates may affect anti-detection
-- **OpenAI SDK**: Keep aligned with API changes
+- **Anthropic SDK**: Keep aligned with API changes
 - **AWS SDK**: Required for production database integration
 - **Security**: Review dependencies for vulnerabilities before updating
 
@@ -155,7 +155,7 @@ This project implements browser automation to apply to Broadway lotteries. Anti-
 ### Critical Security Rules
 - **Never commit sensitive information**: API keys, passwords, tokens, credentials
 - **Environment variables**: Use `.env` for local development (never commit `.env` file)
-- **API keys**: OpenAI API key must be in environment variables only
+- **API keys**: Anthropic API key must be in environment variables only
 - **User data**: Email addresses should be encrypted at rest in production
 - **Dependencies**: Review dependencies for known vulnerabilities before adding/updating
 - **Input validation**: Always validate and sanitize user input

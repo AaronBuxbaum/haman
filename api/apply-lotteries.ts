@@ -21,15 +21,15 @@ export default async function handler(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  if (!openaiApiKey) {
-    console.error('OPENAI_API_KEY environment variable is required');
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicApiKey) {
+    console.error('ANTHROPIC_API_KEY environment variable is required');
     return res.status(500).json({ 
-      error: 'OPENAI_API_KEY environment variable is required' 
+      error: 'ANTHROPIC_API_KEY environment variable is required' 
     });
   }
 
-  const service = new LotteryService(openaiApiKey);
+  const service = new LotteryService(anthropicApiKey);
 
   try {
     const results = await service.applyForAllUsers();

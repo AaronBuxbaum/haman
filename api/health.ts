@@ -14,7 +14,7 @@ export default async function handler(
     timestamp: new Date().toISOString(),
     environment: {
       nodeVersion: process.version,
-      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
       hasCronSecret: !!process.env.CRON_SECRET
     }
   });

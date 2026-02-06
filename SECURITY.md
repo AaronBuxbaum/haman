@@ -39,7 +39,7 @@ Several dev dependencies have known vulnerabilities:
 ### 2. Input Validation
 ✅ TypeScript strict mode enabled
 ✅ Type checking on all inputs
-✅ OpenAI API responses validated and normalized
+✅ Anthropic API responses validated and normalized
 
 ### 3. Browser Automation Security
 ✅ Browser runs in headless mode (isolated)

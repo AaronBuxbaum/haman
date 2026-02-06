@@ -7,13 +7,13 @@ dotenv.config();
  * Example CLI usage
  */
 async function main() {
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  if (!openaiApiKey) {
-    console.error('OPENAI_API_KEY environment variable is required');
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicApiKey) {
+    console.error('ANTHROPIC_API_KEY environment variable is required');
     process.exit(1);
   }
 
-  const service = new LotteryService(openaiApiKey);
+  const service = new LotteryService(anthropicApiKey);
 
   // Example: Create a user with preferences
   console.log('Creating example user...');

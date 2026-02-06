@@ -20,14 +20,14 @@ Haman is a Broadway lottery automation system that combines AI-powered preferenc
 │               ┌──────▼──────┐   ┌─────▼──────┐            │
 │               │  Preference │   │  Lottery   │            │
 │               │   Parser    │   │ Automation │            │
-│               │  (OpenAI)   │   │(Playwright)│            │
+│               │ (Anthropic) │   │(Playwright)│            │
 │               └─────────────┘   └────────────┘            │
 └─────────────────────────────────────────────────────────────┘
                       │                      │
                       │                      │
                 ┌─────▼──────┐         ┌────▼─────────┐
-                │  OpenAI    │         │  Broadway    │
-                │  GPT-4 API │         │  Lottery     │
+                │ Anthropic  │         │  Broadway    │
+                │ Claude API │         │  Lottery     │
                 └────────────┘         │  Websites    │
                                        └──────────────┘
 ```
@@ -62,7 +62,7 @@ interface User {
 **Purpose**: Converts free-text user preferences into structured data using AI.
 
 **Key Features**:
-- Uses OpenAI GPT-4 with JSON mode for reliable parsing
+- Uses Anthropic Claude with JSON mode for reliable parsing
 - Extracts: genres, show names, price ranges, date ranges, exclusions
 - Validates and normalizes parsed data
 - Matches shows against user preferences
@@ -158,7 +158,7 @@ interface Show {
 2. LotteryService.createUser()
 3. User saved to database
 4. PreferenceParser.parsePreferences() called
-5. OpenAI GPT-4 processes text
+5. Anthropic Claude processes text
 6. Parsed preferences stored with user
 ```
 
@@ -219,7 +219,7 @@ Broadway lottery sites use Cloudflare and other anti-bot systems to prevent auto
 **Timeout**: 300 seconds (5 minutes)
 
 **Environment Variables**:
-- `OPENAI_API_KEY`: OpenAI API key
+- `ANTHROPIC_API_KEY`: Anthropic API key
 - `NODE_ENV`: Environment (production/development)
 
 ### Scheduling
@@ -282,7 +282,7 @@ This creates:
 1. **Network Errors**: Timeout, connection refused
 2. **Parsing Errors**: Invalid HTML structure
 3. **Detection Errors**: Bot detection triggered
-4. **API Errors**: OpenAI API failures
+4. **API Errors**: Anthropic API failures
 
 ### Handling Strategy
 
@@ -307,7 +307,7 @@ This creates:
 
 ### Integration Tests
 - Full flow from user creation to lottery application
-- Mock external APIs (OpenAI, lottery sites)
+- Mock external APIs (Anthropic, lottery sites)
 - Test error handling paths
 
 ### Manual Testing
@@ -329,7 +329,7 @@ This creates:
 
 ### Production Dependencies
 - `playwright`: Browser automation
-- `openai`: AI preference parsing
+- `@anthropic-ai/sdk`: AI preference parsing
 - `aws-sdk`: AWS service integration
 - `dotenv`: Environment configuration
 
@@ -345,10 +345,10 @@ This creates:
 - **Per User Processing**: 30-60 seconds (depends on number of matching shows)
 - **Cold Start**: 3-5 seconds (Lambda + Playwright initialization)
 - **Warm Start**: 1-2 seconds
-- **Cost**: ~$0.01 per 100 applications (Lambda + OpenAI API)
+- **Cost**: ~$0.01 per 100 applications (Lambda + Anthropic API)
 
 ### Optimization Opportunities
 1. Keep Lambda warm with CloudWatch Events
 2. Cache parsed preferences
 3. Reuse browser instances within single invocation
-4. Batch OpenAI API calls
+4. Batch Anthropic API calls

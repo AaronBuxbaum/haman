@@ -11,12 +11,12 @@ export const handler = async (event: unknown) => {
   console.log('Starting scheduled lottery application...');
   console.log('Event:', JSON.stringify(event, null, 2));
 
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  if (!openaiApiKey) {
-    throw new Error('OPENAI_API_KEY environment variable is required');
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicApiKey) {
+    throw new Error('ANTHROPIC_API_KEY environment variable is required');
   }
 
-  const service = new LotteryService(openaiApiKey);
+  const service = new LotteryService(anthropicApiKey);
 
   try {
     const results = await service.applyForAllUsers();
