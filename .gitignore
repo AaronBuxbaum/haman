@@ -5,6 +5,7 @@ dist/
 *.log
 .DS_Store
 .serverless/
+.vercel/
 coverage/
 .next/
 .vercel

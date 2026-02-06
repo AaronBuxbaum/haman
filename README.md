@@ -95,6 +95,39 @@ OPENAI_API_KEY=your_openai_api_key_here
    - Navigate to Storage → Create Database → KV
    - Environment variables will be automatically configured
 
+#### Vercel Deployment
+
+This project can also be deployed to Vercel with automatic deployments via GitHub Actions.
+
+##### Prerequisites
+1. Create a Vercel account at [vercel.com](https://vercel.com)
+2. Install Vercel CLI: `npm install -g vercel`
+3. Link your project: `vercel link`
+4. Get your project details:
+   - `VERCEL_ORG_ID`: Found in `.vercel/project.json` after linking
+   - `VERCEL_PROJECT_ID`: Found in `.vercel/project.json` after linking
+   - `VERCEL_TOKEN`: Create at [vercel.com/account/tokens](https://vercel.com/account/tokens)
+
+##### GitHub Secrets Setup
+Add the following secrets to your GitHub repository settings:
+- `VERCEL_TOKEN`: Your Vercel authentication token
+- `VERCEL_ORG_ID`: Your Vercel organization ID
+- `VERCEL_PROJECT_ID`: Your Vercel project ID
+- `OPENAI_API_KEY`: Your OpenAI API key
+
+##### Environment Variables in Vercel
+Set these environment variables in your Vercel project settings:
+- `OPENAI_API_KEY`: Your OpenAI API key
+- `CRON_SECRET`: A secure random string for protecting the cron endpoint
+
+The deployment workflow will automatically deploy:
+- Preview deployments for pull requests
+- Production deployments when merging to main
+
+The Vercel deployment includes scheduled cron jobs that run:
+- Daily at 9 AM EST (14:00 UTC)
+- Daily at 11 AM EST (16:00 UTC)
+
 ## Architecture
 
 ### Frontend Components
