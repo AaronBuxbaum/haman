@@ -1,250 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { chromium, Browser } from 'playwright';
 import { Show } from '../src/types';
+import { ScraperFactory } from '../src/scrapers';
 
 /**
  * Vercel serverless function for scraping Broadway show catalogs
- * This scrapes LuckySeat and BroadwayDirect to get current lottery offerings
+ * This scrapes all registered platforms to get current lottery offerings
  */
-
-// NYC coordinates (Broadway location) for geolocation
-const NYC_LATITUDE = 40.730610;
-const NYC_LONGITUDE = -73.935242;
-
-// Realistic user agents for scraping
-const USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-];
-
-function getRandomUserAgent(): string {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
-
-/**
- * Random delay to avoid being blocked
- */
-async function randomDelay(min: number = 1000, max: number = 3000): Promise<void> {
-  const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-  await new Promise(resolve => setTimeout(resolve, delay));
-}
-
-/**
- * Scrape shows from LuckySeat
- */
-async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
-  const shows: Show[] = [];
-  
-  try {
-    const context = await browser.newContext({
-      userAgent: getRandomUserAgent(),
-      viewport: { width: 1920, height: 1080 },
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      geolocation: { longitude: NYC_LONGITUDE, latitude: NYC_LATITUDE },
-      permissions: ['geolocation']
-    });
-
-    // Hide automation markers
-    await context.addInitScript(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.defineProperty(Object.getPrototypeOf((navigator as any)), 'webdriver', {
-        get: () => false
-      });
-    });
-
-    const page = await context.newPage();
-    
-    console.log('Scraping LuckySeat...');
-    await page.goto('https://www.luckyseat.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    
-    // Wait for shows to load
-    await randomDelay(2000, 4000);
-    
-    // Try to find any visible links or show listings
-    // Use multiple selector strategies to find shows
-    const luckySeatShows = await page.evaluate(() => {
-      const extractedShows: Array<{name: string; url: string; genre?: string}> = [];
-      
-      // Strategy 1: Look for common show container patterns
-      const containers = document.querySelectorAll(
-        'a[href*="/show"], ' +
-        'a[href*="/lottery"], ' +
-        '[class*="show"] a, ' +
-        '[class*="lottery"] a, ' +
-        '[data-show] a, ' +
-        '.card a, ' +
-        '.item a'
-      );
-      
-      const seen = new Set<string>();
-      
-      containers.forEach(el => {
-        if (el instanceof HTMLAnchorElement) {
-          const href = el.getAttribute('href');
-          const text = el.textContent?.trim() || el.getAttribute('title') || el.getAttribute('aria-label');
-          
-          if (href && text && href.includes('show') && !seen.has(href)) {
-            // Clean up the show name
-            const name = text.replace(/\s*lottery\s*/gi, '').trim();
-            
-            // Skip if it's navigation or footer links
-            if (name.length > 0 && name.length < 100 && 
-                !name.toLowerCase().includes('about') &&
-                !name.toLowerCase().includes('contact') &&
-                !name.toLowerCase().includes('terms') &&
-                !name.toLowerCase().includes('privacy')) {
-              
-              seen.add(href);
-              extractedShows.push({
-                name,
-                url: href.startsWith('http') ? href : `https://www.luckyseat.com${href}`,
-                genre: 'musical' // Fallback to 'musical' since most Broadway lotteries are for musicals
-              });
-            }
-          }
-        }
-      });
-      
-      return extractedShows;
-    });
-
-    for (const show of luckySeatShows) {
-      shows.push({
-        name: show.name,
-        platform: 'socialtoaster',
-        url: show.url,
-        genre: show.genre,
-        active: true
-      });
-    }
-
-    await context.close();
-    console.log(`Scraped ${shows.length} shows from LuckySeat`);
-  } catch (error) {
-    console.error('Error scraping LuckySeat:', error);
-    // Fallback to known shows if scraping fails
-    const fallbackShows: Show[] = [
-      { name: 'Hadestown', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/hadestown-newyork', genre: 'musical', active: true },
-      { name: 'Moulin Rouge! The Musical', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/moulinrouge!themusical-newyork', genre: 'musical', active: true },
-      { name: 'The Book of Mormon', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/thebookofmormon-newyork', genre: 'musical', active: true },
-    ];
-    shows.push(...fallbackShows);
-    console.log(`Using fallback shows for LuckySeat (${fallbackShows.length} shows)`);
-  }
-  
-  return shows;
-}
-
-/**
- * Scrape shows from BroadwayDirect
- */
-async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
-  const shows: Show[] = [];
-  
-  try {
-    const context = await browser.newContext({
-      userAgent: getRandomUserAgent(),
-      viewport: { width: 1920, height: 1080 },
-      locale: 'en-US',
-      timezoneId: 'America/New_York',
-      geolocation: { longitude: NYC_LONGITUDE, latitude: NYC_LATITUDE },
-      permissions: ['geolocation']
-    });
-
-    // Hide automation markers
-    await context.addInitScript(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.defineProperty(Object.getPrototypeOf((navigator as any)), 'webdriver', {
-        get: () => false
-      });
-    });
-
-    const page = await context.newPage();
-    
-    console.log('Scraping BroadwayDirect...');
-    await page.goto('https://lottery.broadwaydirect.com/', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    
-    // Wait for shows to load
-    await randomDelay(2000, 4000);
-    
-    // Extract show information from the page
-    const broadwayDirectShows = await page.evaluate(() => {
-      const extractedShows: Array<{name: string; url: string; genre?: string}> = [];
-      
-      // Strategy: Look for show links
-      const containers = document.querySelectorAll(
-        'a[href*="/show"], ' +
-        '[class*="show"] a, ' +
-        '[class*="lottery"] a, ' +
-        '[data-show] a, ' +
-        '.card a, ' +
-        '.item a'
-      );
-      
-      const seen = new Set<string>();
-      
-      containers.forEach(el => {
-        if (el instanceof HTMLAnchorElement) {
-          const href = el.getAttribute('href');
-          const text = el.textContent?.trim() || el.getAttribute('title') || el.getAttribute('aria-label');
-          
-          if (href && text && href.includes('show') && !seen.has(href)) {
-            // Clean up the show name
-            const name = text.replace(/\s*lottery\s*/gi, '').trim();
-            
-            // Skip if it's navigation or footer links
-            if (name.length > 0 && name.length < 100 && 
-                !name.toLowerCase().includes('about') &&
-                !name.toLowerCase().includes('contact') &&
-                !name.toLowerCase().includes('terms') &&
-                !name.toLowerCase().includes('privacy')) {
-              
-              seen.add(href);
-              extractedShows.push({
-                name,
-                url: href.startsWith('http') ? href : `https://lottery.broadwaydirect.com${href}`,
-                genre: 'musical' // Fallback to 'musical' since most Broadway lotteries are for musicals
-              });
-            }
-          }
-        }
-      });
-      
-      return extractedShows;
-    });
-
-    for (const show of broadwayDirectShows) {
-      shows.push({
-        name: show.name,
-        platform: 'broadwaydirect',
-        url: show.url,
-        genre: show.genre,
-        active: true
-      });
-    }
-
-    await context.close();
-    console.log(`Scraped ${shows.length} shows from BroadwayDirect`);
-  } catch (error) {
-    console.error('Error scraping BroadwayDirect:', error);
-    // Fallback to known shows if scraping fails
-    const fallbackShows: Show[] = [
-      { name: 'Aladdin', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/aladdin/', genre: 'musical', active: true },
-      { name: 'Wicked', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/wicked/', genre: 'musical', active: true },
-      { name: 'The Lion King', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/the-lion-king/', genre: 'musical', active: true },
-      { name: 'MJ', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/mj/', genre: 'musical', active: true },
-      { name: 'Six', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/six/', genre: 'musical', active: true },
-      { name: 'Death Becomes Her', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/', genre: 'musical', active: true },
-      { name: 'Stranger Things: The First Shadow', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/st-nyc/', genre: 'play', active: true },
-    ];
-    shows.push(...fallbackShows);
-    console.log(`Using fallback shows for BroadwayDirect (${fallbackShows.length} shows)`);
-  }
-  
-  return shows;
-}
 
 /**
  * In-memory cache for scraped shows
@@ -297,19 +59,8 @@ export default async function handler(
       ]
     });
 
-    const allShows: Show[] = [];
-
-    // Scrape LuckySeat first
-    const luckySeatShows = await scrapeLuckySeat(browser);
-    allShows.push(...luckySeatShows);
-
-    // Add delay between scraping different platforms to avoid detection
-    console.log('Waiting before scraping next platform...');
-    await randomDelay(3000, 5000);
-
-    // Scrape BroadwayDirect
-    const broadwayDirectShows = await scrapeBroadwayDirect(browser);
-    allShows.push(...broadwayDirectShows);
+    // Use ScraperFactory to scrape all platforms
+    const allShows = await ScraperFactory.scrapeAll(browser, 3000);
 
     // Update cache
     cachedShows = allShows;
@@ -321,10 +72,11 @@ export default async function handler(
       shows: allShows,
       cached: false,
       totalShows: allShows.length,
-      breakdown: {
-        luckyseat: luckySeatShows.length,
-        broadwaydirect: broadwayDirectShows.length
-      }
+      breakdown: allShows.reduce((acc, show) => {
+        const platform = show.platform === 'socialtoaster' ? 'luckyseat' : show.platform;
+        acc[platform] = (acc[platform] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
     });
 
   } catch (error) {
