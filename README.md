@@ -187,6 +187,18 @@ npm run lint
 npm test
 ```
 
+## GitHub Copilot Configuration
+
+This repository is configured with GitHub Copilot instructions and custom agents to help with development:
+
+- **Copilot Instructions**: See `.github/copilot-instructions.md` for comprehensive guidelines on code style, testing, architecture, and project-specific considerations
+- **Custom Agents**: Specialized agents available in `.github/agents/`:
+  - **General Purpose**: Bug fixes, features, and refactoring
+  - **Documentation**: Maintaining and improving documentation
+  - **Testing**: Creating and maintaining test suites
+
+These configurations help Copilot provide context-aware assistance tailored to this project's needs.
+
 ## License
 
 MIT
