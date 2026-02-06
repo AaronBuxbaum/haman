@@ -1,22 +1,33 @@
 # Haman - Broadway Lottery Automation
 
-An automated Broadway show lottery application system that uses AI to parse user preferences and Playwright to apply to lotteries.
+An automated Broadway show lottery application system with a modern web UI that uses AI to parse user preferences and Playwright to apply to lotteries.
 
 ## Features
 
-- **User Accounts**: Create accounts with free-text descriptions of show preferences
-- **AI-Powered Parsing**: Uses OpenAI GPT-4 to parse user preferences into structured data
-- **Automated Applications**: Uses Playwright to automatically apply to Broadway show lotteries
-- **Multi-Platform Support**: Supports both SocialToaster and BroadwayDirect lottery platforms
-- **Serverless Architecture**: Runs on AWS Lambda with scheduled triggers for optimal timing
+- **🎭 Web Dashboard**: Modern Next.js UI for managing shows and preferences
+- **🤖 AI-Powered Parsing**: Uses OpenAI GPT-4 to parse user preferences into structured data
+- **✅ Manual Overrides**: Toggle individual shows on/off, overriding AI preferences
+- **🔐 Credential Management**: Securely store multiple platform login credentials
+- **🎯 Automated Applications**: Uses Playwright to automatically apply to Broadway show lotteries
+- **🌐 Multi-Platform Support**: Supports both SocialToaster and BroadwayDirect lottery platforms
+- **☁️ Serverless Architecture**: Deployed on Vercel with edge functions
+- **💾 Persistent Storage**: Uses Vercel KV (Redis) for user data and overrides
+
+## Screenshots
+
+### Dashboard
+![Dashboard](https://github.com/user-attachments/assets/6d5c9945-f929-4f61-b1c8-9bff204ddc9d)
+
+### Credentials Management
+![Credentials](https://github.com/user-attachments/assets/5190c2ee-3641-4754-a533-0a993c35e7bd)
 
 ## Setup
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- AWS CLI configured (for deployment)
-- OpenAI API key
+- Vercel account (for deployment)
+- OpenAI API key (optional - system works without it)
 
 ### Installation
 
@@ -31,43 +42,58 @@ cd haman
 npm install
 ```
 
-3. Create a `.env` file with your OpenAI API key:
+3. Create a `.env` file with your OpenAI API key (optional):
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
 ```
 
-4. Build the project:
-```bash
-npm run build
-```
-
-## Usage
-
-### Local Development
-
-Run the example CLI:
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-This will:
-1. Create an example user with preferences
-2. Parse preferences using GPT-4
-3. Find matching shows
-4. Apply to lotteries (in test mode)
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-### Deployment
+## Usage
 
-#### AWS Lambda Deployment
+### Web Interface
 
-Deploy to AWS Lambda:
+1. **Set User ID**: Enter your user ID (e.g., `demo-user-1`)
+2. **Enter Preferences**: Describe your show preferences in natural language
+   - Example: "I love musicals, especially Hamilton and Wicked"
+3. **Parse Preferences**: Click "🤖 Parse Preferences" to use OpenAI (if configured)
+4. **Override Shows**: Manually enable/disable specific shows using toggle buttons
+5. **Manage Credentials**: Click "🔑 Manage Platform Credentials" to add login accounts
+6. **Apply to Lotteries**: Click "🎭 Apply to Lotteries" to submit applications
+
+### Without OpenAI API Key
+
+The system works without an OpenAI API key:
+- All shows are disabled by default
+- Use manual overrides to enable specific shows
+- This is useful for testing or if you want full manual control
+
+### Deployment to Vercel
+
+1. Install Vercel CLI:
+```bash
+npm install -g vercel
+```
+
+2. Deploy to Vercel:
 ```bash
 npm run deploy
 ```
 
-The function will run automatically on schedule:
-- Daily at 9 AM EST (when most lotteries open)
-- Daily at 11 AM EST (backup for late-opening lotteries)
+3. Set environment variables in Vercel dashboard:
+```bash
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+4. (Optional) Set up Vercel KV for persistent storage:
+   - Go to your project in Vercel dashboard
+   - Navigate to Storage → Create Database → KV
+   - Environment variables will be automatically configured
 
 #### Vercel Deployment
 
@@ -104,11 +130,33 @@ The Vercel deployment includes scheduled cron jobs that run:
 
 ## Architecture
 
-### Components
+### Frontend Components
+
+1. **Dashboard Page** (`pages/index.tsx`)
+   - Main interface showing all available shows
+   - Preference input and parsing
+   - Manual override toggles
+   - Action buttons (refresh, parse, apply)
+
+2. **Credentials Page** (`pages/credentials.tsx`)
+   - Manage platform login credentials
+   - Support multiple accounts per platform
+   - Encrypted password storage
+
+### Backend API Routes
+
+1. **`/api/shows`** - Get all shows with preference matching
+2. **`/api/override`** - Save user overrides for shows
+3. **`/api/parse-preferences`** - Parse user preferences with OpenAI
+4. **`/api/apply-lotteries`** - Apply to all desired shows
+5. **`/api/credentials`** - Manage platform credentials
+6. **`/api/refresh-shows`** - Refresh show catalog
+
+### Backend Services
 
 1. **User Database** (`src/database.ts`)
    - Manages user accounts and preferences
-   - In-memory storage (replace with DynamoDB/PostgreSQL in production)
+   - In-memory storage with Vercel KV support
 
 2. **Preference Parser** (`src/preferenceParser.ts`)
    - Uses OpenAI GPT-4 to parse free-text preferences
@@ -126,9 +174,9 @@ The Vercel deployment includes scheduled cron jobs that run:
    - Main orchestration service
    - Matches users with shows and applies to lotteries
 
-6. **Lambda Handler** (`src/handler.ts`)
-   - AWS Lambda function handler
-   - Scheduled execution entry point
+6. **KV Storage** (`src/kvStorage.ts`)
+   - Vercel KV integration for user overrides and credentials
+   - Falls back to in-memory storage for local development
 
 ## User Preference Examples
 
@@ -192,24 +240,13 @@ The catalog updates automatically every hour when accessed.
 - Current shows: Aladdin, Wicked, The Lion King, MJ, Six, Death Becomes Her, Stranger Things: The First Shadow, and more
 - URL: https://lottery.broadwaydirect.com/
 
-## Serverless Configuration
-
-The system uses AWS Lambda with scheduled triggers:
-
-```yaml
-# Daily at 9 AM EST
-- schedule:
-    rate: cron(0 14 * * ? *)
-
-# Daily at 11 AM EST (backup)
-- schedule:
-    rate: cron(0 16 * * ? *)
-```
-
 ## Environment Variables
 
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `OPENAI_API_KEY`: Your OpenAI API key (optional - system works without it)
 - `NODE_ENV`: Environment (production/development)
+- `KV_URL`: Vercel KV connection URL (auto-configured when using Vercel KV)
+- `KV_REST_API_URL`: Vercel KV REST API URL (auto-configured)
+- `KV_REST_API_TOKEN`: Vercel KV auth token (auto-configured)
 
 ## Future Enhancements
 

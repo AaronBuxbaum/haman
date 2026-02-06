@@ -44,3 +44,31 @@ export interface Show {
   genre?: string;
   active: boolean;
 }
+
+export interface UserOverride {
+  userId: string;
+  showName: string;
+  platform: 'socialtoaster' | 'broadwaydirect';
+  shouldApply: boolean; // true = apply, false = skip
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PlatformCredentials {
+  id: string;
+  userId: string;
+  platform: 'socialtoaster' | 'broadwaydirect';
+  email: string;
+  encryptedPassword: string; // Encrypted password
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ShowWithPreference {
+  show: Show;
+  matchesPreference: boolean; // Based on AI parsing
+  hasOverride: boolean;
+  overrideShouldApply?: boolean; // User's manual override
+  finalDecision: boolean; // Final decision after considering override
+}
+
