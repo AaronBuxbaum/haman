@@ -1,11 +1,12 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { chromium, Browser } from 'playwright';
-import { Show } from '../src/types';
-import { ScraperFactory } from '../src/scrapers';
+import { Show } from '../../src/types';
+import { ScraperFactory } from '../../src/scrapers';
 
 /**
- * Vercel serverless function for scraping Broadway show catalogs
+ * API endpoint for scraping Broadway show catalogs
  * This scrapes all registered platforms to get current lottery offerings
+ * GET /api/scrape-shows?refresh=true
  */
 
 /**
@@ -17,8 +18,8 @@ let cacheTimestamp: number = 0;
 const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
 
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
   console.log('Starting show catalog scraping...');
   console.log('Request method:', req.method);
@@ -46,16 +47,22 @@ export default async function handler(
 
   try {
     // Launch browser with anti-detection settings
+    // These flags are necessary for scraping public lottery websites:
+    // - --disable-web-security: Required to bypass CORS when scraping cross-origin resources
+    //   from lottery platforms that don't allow programmatic access
+    // - --no-sandbox/--disable-setuid-sandbox: Required for running Chrome in serverless environments
+    //   where sandboxing is not available (Vercel, AWS Lambda, etc.)
+    // - Other flags: Hide automation detection to ensure scrapers work reliably
     browser = await chromium.launch({
       headless: true,
       args: [
         '--disable-blink-features=AutomationControlled',
         '--disable-features=IsolateOrigins,site-per-process',
         '--disable-site-isolation-trials',
-        '--disable-web-security',
+        '--disable-web-security', // See security note above
         '--disable-dev-shm-usage',
-        '--no-sandbox',
-        '--disable-setuid-sandbox'
+        '--no-sandbox', // Required for serverless
+        '--disable-setuid-sandbox' // Required for serverless
       ]
     });
 

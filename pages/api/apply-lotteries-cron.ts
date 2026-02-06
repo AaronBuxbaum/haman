@@ -1,15 +1,46 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { LotteryService } from '../src/lotteryService';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { timingSafeEqual } from 'crypto';
+import { LotteryService } from '../../src/lotteryService';
 
 /**
- * Vercel serverless function for applying to Broadway lotteries
+ * API endpoint for applying to Broadway lotteries for all users
  * This can be triggered via HTTP request or scheduled via Vercel cron
+ * POST /api/apply-lotteries-cron
+ * 
+ * This endpoint applies to lotteries for ALL users in the system.
+ * For applying to lotteries for a specific user, use /api/apply-lotteries instead.
  */
+
+/**
+ * Timing-safe comparison of authorization tokens
+ * Prevents timing attacks by ensuring constant-time comparison
+ */
+function isAuthorized(authHeader: string | undefined, expectedSecret: string | undefined): boolean {
+  if (!authHeader || !expectedSecret) {
+    return false;
+  }
+  
+  const expectedAuth = `Bearer ${expectedSecret}`;
+  
+  // Ensure both strings are same length for timingSafeEqual
+  if (authHeader.length !== expectedAuth.length) {
+    return false;
+  }
+  
+  try {
+    const authBuffer = Buffer.from(authHeader);
+    const expectedBuffer = Buffer.from(expectedAuth);
+    return timingSafeEqual(authBuffer, expectedBuffer);
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
+  req: NextApiRequest,
+  res: NextApiResponse
 ) {
-  console.log('Starting lottery application...');
+  console.log('Starting lottery application for all users...');
   console.log('Request method:', req.method);
 
   // Verify authorization for manual triggers
@@ -17,7 +48,7 @@ export default async function handler(
   const cronHeader = req.headers['x-vercel-cron'];
   
   // Allow requests from Vercel cron or with valid authorization
-  if (!cronHeader && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!cronHeader && !isAuthorized(authHeader, process.env.CRON_SECRET)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
