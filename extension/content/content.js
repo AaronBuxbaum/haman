@@ -55,6 +55,28 @@ async function selectOption(selectElement, value) {
 }
 
 /**
+ * Try to select one of multiple possible values in a dropdown
+ * Returns true if an option was found and selected
+ */
+function trySelectOption(selectElement, possibleValues) {
+  for (const value of possibleValues) {
+    // Check if this value exists in the options
+    const option = Array.from(selectElement.options).find(opt => opt.value === value);
+    if (option) {
+      selectElement.value = value;
+      selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
+  }
+  // If no exact match, try the first value anyway
+  if (possibleValues.length > 0) {
+    selectElement.value = possibleValues[0];
+    selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  return false;
+}
+
+/**
  * Detect the current lottery platform using hostname validation
  */
 function detectPlatform() {
@@ -290,17 +312,26 @@ async function fillBroadwayDirectForm(elements, data) {
     
     if (elements.dobMonthSelect && month) {
       console.log('Haman: Selecting birth month');
-      // Remove leading zero for month if present
-      await selectOption(elements.dobMonthSelect, parseInt(month, 10).toString());
-      await randomDelay(150, 300);
-      filledFields++;
+      // Try both formats: with and without leading zero
+      const monthVal = parseInt(month, 10).toString();
+      const monthValPadded = month.padStart(2, '0');
+      const optionFound = trySelectOption(elements.dobMonthSelect, [monthVal, monthValPadded, month]);
+      if (optionFound) {
+        await randomDelay(150, 300);
+        filledFields++;
+      }
     }
 
     if (elements.dobDaySelect && day) {
       console.log('Haman: Selecting birth day');
-      await selectOption(elements.dobDaySelect, parseInt(day, 10).toString());
-      await randomDelay(150, 300);
-      filledFields++;
+      // Try both formats: with and without leading zero
+      const dayVal = parseInt(day, 10).toString();
+      const dayValPadded = day.padStart(2, '0');
+      const optionFound = trySelectOption(elements.dobDaySelect, [dayVal, dayValPadded, day]);
+      if (optionFound) {
+        await randomDelay(150, 300);
+        filledFields++;
+      }
     }
 
     if (elements.dobYearSelect && year) {
@@ -483,6 +514,40 @@ function getShowNameFromPage() {
 }
 
 /**
+ * Try to detect the genre of a show from page content
+ */
+function detectGenreFromPage() {
+  const pageText = document.body.innerText.toLowerCase();
+  
+  // Check for drama indicators
+  const dramaKeywords = ['drama', 'play', 'straight play', 'thriller', 'tragedy'];
+  for (const keyword of dramaKeywords) {
+    if (pageText.includes(keyword)) {
+      return 'drama';
+    }
+  }
+  
+  // Check for comedy indicators
+  const comedyKeywords = ['comedy', 'comedic', 'hilarious', 'funny'];
+  for (const keyword of comedyKeywords) {
+    if (pageText.includes(keyword)) {
+      return 'comedy';
+    }
+  }
+  
+  // Check for musical indicators
+  const musicalKeywords = ['musical', 'music by', 'lyrics by', 'songs', 'singing'];
+  for (const keyword of musicalKeywords) {
+    if (pageText.includes(keyword)) {
+      return 'musical';
+    }
+  }
+  
+  // Default to musical as most Broadway shows are musicals
+  return 'musical';
+}
+
+/**
  * Scrape and discover shows from the current page
  */
 async function discoverShowsFromPage() {
@@ -491,6 +556,7 @@ async function discoverShowsFromPage() {
 
   const currentUrl = window.location.href;
   const showName = getShowNameFromPage();
+  const genre = detectGenreFromPage();
 
   // Add the current page as a discovered show
   if (showName && showName !== 'Unknown Show') {
@@ -502,7 +568,7 @@ async function discoverShowsFromPage() {
             name: showName,
             platform,
             url: currentUrl,
-            genre: 'musical', // Default genre, could be enhanced
+            genre,
           },
         },
       });
