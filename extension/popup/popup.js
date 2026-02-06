@@ -84,7 +84,12 @@ function renderShows(shows) {
   showCountEl.textContent = shows.length.toString();
 
   if (shows.length === 0) {
-    showsListEl.innerHTML = '<div class="empty-state">No shows available</div>';
+    showsListEl.innerHTML = `
+      <div class="empty-state">
+        <p>No shows discovered yet</p>
+        <p class="hint">Visit lottery pages on BroadwayDirect or LuckySeat to discover shows automatically.</p>
+      </div>
+    `;
     return;
   }
 

@@ -371,6 +371,12 @@ body {
   font-size: 13px;
 }
 
+.empty-state .hint {
+  font-size: 11px;
+  color: #999;
+  margin-top: 8px;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

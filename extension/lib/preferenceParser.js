@@ -15,6 +15,18 @@ Extract the following information from the user's text:
 - dateRange: Date ranges if mentioned
 - excludeShows: Shows they want to exclude
 - keywords: Other relevant keywords
+- availability: Object describing when the user is available to attend shows. Extract:
+  - daysOfWeek: Array of days they can attend (e.g., ["Friday", "Saturday", "Sunday"])
+  - timePreference: "matinee", "evening", or "any" if mentioned
+  - specificDates: Array of specific dates they can attend (in YYYY-MM-DD format)
+  - excludeDates: Array of dates they cannot attend (in YYYY-MM-DD format)
+
+For availability, pay attention to phrases like:
+- "I'm only available on Friday and Saturday" -> daysOfWeek: ["Friday", "Saturday"]
+- "weekends only" -> daysOfWeek: ["Saturday", "Sunday"]
+- "no Mondays" -> this means all days except Monday
+- "matinee shows only" -> timePreference: "matinee"
+- "evening performances" -> timePreference: "evening"
 
 Return ONLY a valid JSON object with these fields. If a field is not mentioned, omit it.`;
 
@@ -92,6 +104,30 @@ function normalizePreferences(parsed) {
 
   if (parsed.keywords && Array.isArray(parsed.keywords)) {
     preferences.keywords = parsed.keywords.map((k) => k.toLowerCase());
+  }
+
+  // Normalize availability preferences
+  if (parsed.availability && typeof parsed.availability === 'object') {
+    preferences.availability = {};
+    
+    if (parsed.availability.daysOfWeek && Array.isArray(parsed.availability.daysOfWeek)) {
+      // Normalize day names to title case
+      preferences.availability.daysOfWeek = parsed.availability.daysOfWeek.map((day) =>
+        day.charAt(0).toUpperCase() + day.slice(1).toLowerCase()
+      );
+    }
+    
+    if (parsed.availability.timePreference) {
+      preferences.availability.timePreference = parsed.availability.timePreference.toLowerCase();
+    }
+    
+    if (parsed.availability.specificDates && Array.isArray(parsed.availability.specificDates)) {
+      preferences.availability.specificDates = parsed.availability.specificDates;
+    }
+    
+    if (parsed.availability.excludeDates && Array.isArray(parsed.availability.excludeDates)) {
+      preferences.availability.excludeDates = parsed.availability.excludeDates;
+    }
   }
 
   return preferences;

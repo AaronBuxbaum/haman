@@ -22,22 +22,7 @@ const STORAGE_KEYS = {
   LOTTERY_HISTORY: 'lotteryHistory',
 };
 
-// Known shows catalog
-const KNOWN_SHOWS = [
-  { name: 'Aladdin', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/aladdin/', genre: 'musical', active: true },
-  { name: 'Wicked', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/wicked/', genre: 'musical', active: true },
-  { name: 'The Lion King', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/the-lion-king/', genre: 'musical', active: true },
-  { name: 'MJ The Musical', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/mj/', genre: 'musical', active: true },
-  { name: 'Six', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/six/', genre: 'musical', active: true },
-  { name: 'Death Becomes Her', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/', genre: 'musical', active: true },
-  { name: 'Stranger Things: The First Shadow', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/stranger-things/', genre: 'drama', active: true },
-  { name: 'Hamilton', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/hamilton/', genre: 'musical', active: true },
-  { name: 'Hadestown', platform: 'socialtoaster', url: 'https://www.luckyseat.com/hadestown-broadway', genre: 'musical', active: true },
-  { name: 'Moulin Rouge! The Musical', platform: 'socialtoaster', url: 'https://www.luckyseat.com/moulin-rouge-the-musical', genre: 'musical', active: true },
-  { name: 'The Book of Mormon', platform: 'socialtoaster', url: 'https://www.luckyseat.com/the-book-of-mormon', genre: 'musical', active: true },
-  { name: 'Chicago', platform: 'socialtoaster', url: 'https://www.luckyseat.com/chicago', genre: 'musical', active: true },
-  { name: 'The Phantom of the Opera', platform: 'socialtoaster', url: 'https://www.luckyseat.com/phantom-of-the-opera', genre: 'musical', active: true },
-];
+// Shows are dynamically scraped - no hardcoded catalog
 
 /**
  * Initialize extension on install
@@ -45,11 +30,11 @@ const KNOWN_SHOWS = [
 chrome.runtime.onInstalled.addListener(async (details) => {
   console.log('Haman extension installed', details.reason);
 
-  // Initialize shows cache with known shows
+  // Initialize shows cache as empty - shows will be scraped dynamically
   const result = await chrome.storage.local.get([STORAGE_KEYS.SHOWS]);
   if (!result[STORAGE_KEYS.SHOWS]) {
     await chrome.storage.local.set({
-      [STORAGE_KEYS.SHOWS]: KNOWN_SHOWS.filter(s => s.active),
+      [STORAGE_KEYS.SHOWS]: [],
       [STORAGE_KEYS.SHOWS_TIMESTAMP]: Date.now(),
     });
   }
@@ -103,10 +88,21 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * Handle daily auto-apply
  */
 async function handleDailyApply() {
-  const result = await chrome.storage.sync.get(STORAGE_KEYS.SETTINGS);
-  const settings = result[STORAGE_KEYS.SETTINGS] || {};
+  const [settingsResult, prefsResult] = await Promise.all([
+    chrome.storage.sync.get(STORAGE_KEYS.SETTINGS),
+    chrome.storage.sync.get(STORAGE_KEYS.PARSED_PREFERENCES),
+  ]);
+  
+  const settings = settingsResult[STORAGE_KEYS.SETTINGS] || {};
+  const parsedPrefs = prefsResult[STORAGE_KEYS.PARSED_PREFERENCES];
   
   if (!settings.autoApplyEnabled) return;
+
+  // Check if user is available for shows based on their schedule preferences
+  if (!shouldEnterLotteriesToday(parsedPrefs)) {
+    console.log('Haman: Skipping lottery applications - user not available based on schedule preferences');
+    return;
+  }
 
   const shows = await getShowsWithPreferences();
   const enabledShows = shows.filter((s) => s.finalDecision);
@@ -129,6 +125,10 @@ async function handleDailyApply() {
                 email: settings.defaultEmail,
                 firstName: settings.defaultFirstName,
                 lastName: settings.defaultLastName,
+                dateOfBirth: settings.dateOfBirth,
+                zipCode: settings.zipCode,
+                country: settings.country || 'US',
+                ticketQuantity: settings.ticketQuantity || '2',
                 autoSubmit: true, // Enable auto-submit for scheduled applications
               },
             });
@@ -178,6 +178,60 @@ function matchesPreferences(show, preferences) {
 }
 
 /**
+ * Check if user is available on a given date based on their preferences
+ * @param {Date} date - The date to check
+ * @param {Object} availability - The parsed availability preferences
+ * @returns {boolean} - True if user is available
+ */
+function checkAvailability(date, availability) {
+  if (!availability) return true; // No availability restrictions
+
+  // Check day of week availability
+  if (availability.daysOfWeek && availability.daysOfWeek.length > 0) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = dayNames[date.getDay()];
+    
+    if (!availability.daysOfWeek.includes(dayOfWeek)) {
+      return false;
+    }
+  }
+
+  // Check specific dates (if provided)
+  if (availability.specificDates && availability.specificDates.length > 0) {
+    const dateStr = date.toISOString().split('T')[0];
+    if (!availability.specificDates.includes(dateStr)) {
+      return false;
+    }
+  }
+
+  // Check excluded dates
+  if (availability.excludeDates && availability.excludeDates.length > 0) {
+    const dateStr = date.toISOString().split('T')[0];
+    if (availability.excludeDates.includes(dateStr)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if today is a day user should enter lotteries based on availability
+ */
+function shouldEnterLotteriesToday(preferences) {
+  if (!preferences || !preferences.availability) return true;
+  
+  // For lottery entry, we check if the user would be available for shows
+  // that typically happen the next day or the day after (common lottery patterns)
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Check if user is available tomorrow (most lotteries are for next day shows)
+  return checkAvailability(tomorrow, preferences.availability);
+}
+
+/**
  * Get shows with preference matching and overrides applied
  */
 async function getShowsWithPreferences() {
@@ -188,7 +242,7 @@ async function getShowsWithPreferences() {
     chrome.storage.sync.get(STORAGE_KEYS.SETTINGS),
   ]);
 
-  const shows = showsResult[STORAGE_KEYS.SHOWS] || KNOWN_SHOWS.filter(s => s.active);
+  const shows = showsResult[STORAGE_KEYS.SHOWS] || [];
   const overrides = overridesResult[STORAGE_KEYS.OVERRIDES] || [];
   const parsedPrefs = prefsResult[STORAGE_KEYS.PARSED_PREFERENCES];
   const settings = settingsResult[STORAGE_KEYS.SETTINGS] || {};
@@ -226,6 +280,18 @@ Extract the following information from the user's text:
 - dateRange: Date ranges if mentioned
 - excludeShows: Shows they want to exclude
 - keywords: Other relevant keywords
+- availability: Object describing when the user is available to attend shows. Extract:
+  - daysOfWeek: Array of days they can attend (e.g., ["Friday", "Saturday", "Sunday"])
+  - timePreference: "matinee", "evening", or "any" if mentioned
+  - specificDates: Array of specific dates they can attend (in YYYY-MM-DD format)
+  - excludeDates: Array of dates they cannot attend (in YYYY-MM-DD format)
+
+For availability, pay attention to phrases like:
+- "I'm only available on Friday and Saturday" -> daysOfWeek: ["Friday", "Saturday"]
+- "weekends only" -> daysOfWeek: ["Saturday", "Sunday"]
+- "no Mondays" -> this means all days except Monday
+- "matinee shows only" -> timePreference: "matinee"
+- "evening performances" -> timePreference: "evening"
 
 Return ONLY a valid JSON object with these fields. If a field is not mentioned, omit it.`;
 
@@ -288,8 +354,8 @@ async function handleMessage(message, sender) {
       };
 
     case 'REFRESH_SHOWS':
+      // Shows are scraped dynamically - just update timestamp
       await chrome.storage.local.set({
-        [STORAGE_KEYS.SHOWS]: KNOWN_SHOWS.filter(s => s.active),
         [STORAGE_KEYS.SHOWS_TIMESTAMP]: Date.now(),
       });
       return {
@@ -381,6 +447,29 @@ async function handleMessage(message, sender) {
       await chrome.storage.local.set({
         [STORAGE_KEYS.LOTTERY_HISTORY]: history.slice(0, 100),
       });
+      return { success: true };
+    }
+
+    case 'ADD_DISCOVERED_SHOW': {
+      // Add a newly discovered show from scraping lottery pages
+      const { show } = message.payload;
+      const showsResult = await chrome.storage.local.get([STORAGE_KEYS.SHOWS]);
+      const shows = showsResult[STORAGE_KEYS.SHOWS] || [];
+      
+      // Check if show already exists (by URL)
+      const exists = shows.some(s => s.url === show.url);
+      if (!exists) {
+        shows.push({
+          ...show,
+          active: true,
+          discoveredAt: new Date().toISOString(),
+        });
+        await chrome.storage.local.set({
+          [STORAGE_KEYS.SHOWS]: shows,
+          [STORAGE_KEYS.SHOWS_TIMESTAMP]: Date.now(),
+        });
+        console.log(`Discovered new show: ${show.name}`);
+      }
       return { success: true };
     }
 
