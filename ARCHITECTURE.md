@@ -7,52 +7,40 @@ Haman is a Broadway lottery automation system with a modern web interface that c
 ## System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Vercel Edge Network                          │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    Next.js Frontend                       │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │  │
-│  │  │  Dashboard   │  │ Credentials  │  │  Components  │   │  │
-│  │  │     Page     │  │     Page     │  │   & Styles   │   │  │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │              Next.js API Routes (Serverless)              │  │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────┐   │  │
-│  │  │  shows  │ │override │ │  parse  │ │credentials  │   │  │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────┘   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-│                              ▼                                   │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  Backend Services                         │  │
-│  │  ┌──────────────┐    ┌─────────────────┐                │  │
-│  │  │  Preference  │───>│ Lottery Service │                │  │
-│  │  │   Parser     │    │                 │                │  │
-│  │  │  (OpenAI)    │    └────────┬────────┘                │  │
-│  │  └──────────────┘             │                          │  │
-│  │                        ┌──────▼──────┐                   │  │
-│  │                        │  Lottery    │                   │  │
-│  │                        │ Automation  │                   │  │
-│  │                        │(Playwright) │                   │  │
-│  │                        └─────────────┘                   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                   │
-└──────────────────────────────┼───────────────────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-       ┌──────▼──────┐  ┌─────▼──────┐  ┌─────▼──────┐
-       │ Vercel KV   │  │  OpenAI    │  │  Broadway  │
-       │   (Redis)   │  │  GPT-4 API │  │  Lottery   │
-       │             │  │            │  │  Websites  │
-       └─────────────┘  └────────────┘  └────────────┘
-        Overrides &        AI Parsing      Automation
-        Credentials                        Target
+┌─────────────────────────────────────────────────────────────────────────┐
+│                   Vercel Serverless Functions (Primary)                  │
+│                                                                          │
+│  ┌──────────────┐    ┌─────────────────┐    ┌──────────────────┐      │
+│  │   Handler    │───>│ Lottery Service │───>│  Show Catalog    │      │
+│  │ (Scheduled)  │    │                 │    │  (Dynamic)       │      │
+│  └──────────────┘    └────────┬────────┘    └────────┬─────────┘      │
+│                               │                      │                 │
+│                      ┌────────┴────────┐             │                 │
+│                      │                 │             │                 │
+│               ┌──────▼──────┐   ┌─────▼──────┐      │                 │
+│               │  Preference │   │  Lottery   │      │                 │
+│               │   Parser    │   │ Automation │      │                 │
+│               │  (OpenAI)   │   │(Playwright)│      │                 │
+│               └─────────────┘   └────────────┘      │                 │
+│                                                      │                 │
+│  ┌───────────────────────────────────────────────────┘                 │
+│  │                                                                     │
+│  │  ┌──────────────────┐                                              │
+│  └─>│  Show Scraper    │ (Anti-detection Playwright)                  │
+│     │  /api/scrape-    │                                              │
+│     │   shows          │                                              │
+│     └────────┬─────────┘                                              │
+└──────────────┼────────────────────────────────────────────────────────┘
+               │              │
+               │              │
+         ┌─────▼──────┐  ┌───▼────────────┐  ┌────────────┐
+         │  OpenAI    │  │   LuckySeat    │  │ Broadway   │
+         │  GPT-4 API │  │ BroadwayDirect │  │  Lottery   │
+         └────────────┘  │   (Scraping)   │  │  Sites     │
+                         └────────────────┘  └────────────┘
 ```
+
+**Note**: System supports both Vercel and AWS Lambda deployment. The diagram shows Vercel as primary deployment target with the new scraping functionality.
 
 ## Core Components
 
@@ -270,7 +258,7 @@ Output: {
 
 ### 4. Show Catalog (`src/showCatalog.ts`)
 
-**Purpose**: Maintains list of available Broadway shows and their lottery URLs.
+**Purpose**: Provides access to Broadway show listings through dynamic scraping and caching.
 
 **Data Structure**:
 ```typescript
@@ -283,12 +271,74 @@ interface Show {
 }
 ```
 
-**Production Enhancement**: 
-- Implement web scraping to automatically discover new lotteries
-- Add API integration with Broadway ticketing platforms
-- Store in database with admin interface for updates
+**Implementation**:
+- **Dynamic Loading**: Fetches shows from `/api/scrape-shows` endpoint
+- **Caching**: 1-hour in-memory cache to reduce API calls
+- **Fallback**: Uses known current shows if scraping fails
+- **Dual API**: Provides both async and sync methods for flexibility
 
-### 5. Lottery Service (`src/lotteryService.ts`)
+**Scraping API** (`/api/scrape-shows`):
+- Vercel serverless function that scrapes LuckySeat and BroadwayDirect
+- Anti-detection measures (user agents, delays, geolocation, webdriver hiding)
+- Request interspersing with 3-5 second delays between platforms
+- Returns current show listings or cached data
+- Automatically falls back to known shows if scraping blocked
+
+**Production Considerations**: 
+- Consider using Redis or DynamoDB for distributed caching
+- Monitor scraping success rate and adjust anti-detection measures
+- Add admin interface for manual show management
+
+### 5. Show Scraper API (`/api/scrape-shows`)
+
+**Purpose**: Vercel serverless function that dynamically scrapes current Broadway show listings.
+
+**Responsibilities**:
+- Scrape LuckySeat and BroadwayDirect lottery platforms
+- Extract show names, URLs, and metadata
+- Return structured show data
+- Implement caching to reduce scraping frequency
+- Provide fallback data when scraping fails
+
+**Anti-Detection Strategy**:
+1. **Browser Configuration**
+   - Random user agent rotation
+   - Realistic viewport settings (1920x1080)
+   - NYC geolocation (Broadway location)
+   - Proper locale and timezone
+
+2. **Request Interspersing**
+   - 2-4 second random delays for page loads
+   - 3-5 second delays between platforms
+   - Prevents rate limiting and detection
+
+3. **JavaScript Injection**
+   - Hides `navigator.webdriver` property
+   - Makes browser appear non-automated
+
+4. **Fallback Handling**
+   - Returns known current shows if scraping blocked
+   - Graceful degradation ensures system continues working
+
+**Caching**:
+- In-memory cache with 1-hour expiration
+- Query parameter `?refresh=true` forces cache refresh
+- Returns cache metadata (age, staleness)
+
+**Response Format**:
+```json
+{
+  "shows": [...],
+  "cached": false,
+  "totalShows": 10,
+  "breakdown": {
+    "luckyseat": 3,
+    "broadwaydirect": 7
+  }
+}
+```
+
+### 6. Lottery Service (`src/lotteryService.ts`)
 
 **Purpose**: Main orchestration layer that coordinates all components.
 
@@ -296,14 +346,14 @@ interface Show {
 1. Get all users from database
 2. For each user:
    - Parse preferences (if not already parsed)
-   - Find matching shows
+   - Find matching shows (fetches from scraper API)
    - Group shows by platform
    - Initialize browser automation
    - Apply to each matching lottery
    - Collect results
 3. Return aggregated results
 
-### 6. KV Storage (`src/kvStorage.ts`)
+### 7. Lambda Handler (`src/handler.ts`)
 
 **Purpose**: Persistent storage for user overrides and platform credentials.
 

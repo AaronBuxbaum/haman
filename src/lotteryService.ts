@@ -44,12 +44,12 @@ export class LotteryService {
   /**
    * Get matching shows for a user based on their preferences
    */
-  getMatchingShows(user: User): Show[] {
+  async getMatchingShows(user: User): Promise<Show[]> {
     if (!user.parsedPreferences) {
       return [];
     }
 
-    const allShows = getActiveShows();
+    const allShows = await getActiveShows();
     return allShows.filter(show =>
       this.preferenceParser.matchesPreferences(show, user.parsedPreferences!)
     );
@@ -64,7 +64,7 @@ export class LotteryService {
       throw new Error(`User not found: ${userId}`);
     }
 
-    const matchingShows = this.getMatchingShows(user);
+    const matchingShows = await this.getMatchingShows(user);
     console.log(`Found ${matchingShows.length} matching shows for user ${user.email}`);
 
     const results: LotteryResult[] = [];
