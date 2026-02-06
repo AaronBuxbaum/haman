@@ -2,615 +2,349 @@
 
 ## Overview
 
-Haman is a Broadway lottery automation system with a modern web interface that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries on behalf of users.
+Haman is a Broadway lottery automation system implemented as a Chrome browser extension. It uses AI-powered preference parsing to match users with shows and automates lottery entry form filling directly in the user's browser.
 
 ## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                   Vercel Serverless Functions (Primary)                  │
+│                         Chrome Browser Extension                         │
 │                                                                          │
-│  ┌──────────────┐    ┌─────────────────┐    ┌──────────────────┐      │
-│  │   Handler    │───>│ Lottery Service │───>│  Show Catalog    │      │
-│  │ (Scheduled)  │    │                 │    │  (Dynamic)       │      │
-│  └──────────────┘    └────────┬────────┘    └────────┬─────────┘      │
-│                               │                      │                 │
-│                      ┌────────┴────────┐             │                 │
-│                      │                 │             │                 │
-│               ┌──────▼──────┐   ┌─────▼──────┐      │                 │
-│               │  Preference │   │  Lottery   │      │                 │
-│               │   Parser    │   │ Automation │      │                 │
-│               │  (OpenAI)   │   │(Playwright)│      │                 │
-│               └─────────────┘   └────────────┘      │                 │
-│                                                      │                 │
-│  ┌───────────────────────────────────────────────────┘                 │
-│  │                                                                     │
-│  │  ┌──────────────────┐                                              │
-│  └─>│  Show Scraper    │ (Anti-detection Playwright)                  │
-│     │  /api/scrape-    │                                              │
-│     │   shows          │                                              │
-│     └────────┬─────────┘                                              │
-└──────────────┼────────────────────────────────────────────────────────┘
-               │              │
-               │              │
-         ┌─────▼──────┐  ┌───▼────────────┐  ┌────────────┐
-         │  OpenAI    │  │   LuckySeat    │  │ Broadway   │
-         │  GPT-4 API │  │ BroadwayDirect │  │  Lottery   │
-         └────────────┘  │   (Scraping)   │  │  Sites     │
-                         └────────────────┘  └────────────┘
+│  ┌──────────────────┐    ┌─────────────────────┐                        │
+│  │   Popup UI       │────│  Background Service │                        │
+│  │   (popup.html)   │    │  Worker             │                        │
+│  └────────┬─────────┘    └──────────┬──────────┘                        │
+│           │                         │                                    │
+│           │    Chrome Messages      │                                    │
+│           └─────────┬───────────────┘                                    │
+│                     │                                                    │
+│           ┌─────────┴───────────┐                                       │
+│           │                     │                                        │
+│  ┌────────▼────────┐   ┌───────▼───────┐                                │
+│  │   Options Page  │   │ Content Script │                                │
+│  │   (Settings)    │   │ (Form Filling) │                                │
+│  └─────────────────┘   └───────┬───────┘                                │
+│                                │                                         │
+└────────────────────────────────┼─────────────────────────────────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    │                         │
+           ┌────────▼────────┐       ┌───────▼────────┐
+           │  BroadwayDirect │       │   LuckySeat    │
+           │   Lottery Pages │       │ Lottery Pages  │
+           └─────────────────┘       └────────────────┘
+                    
+                                 ▲
+                                 │ (Optional)
+                        ┌────────┴────────┐
+                        │   OpenAI API    │
+                        │   GPT-4         │
+                        └─────────────────┘
 ```
-
-**Note**: System supports both Vercel and AWS Lambda deployment. The diagram shows Vercel as primary deployment target with the new scraping functionality.
 
 ## Core Components
 
-### Frontend Components
+### 1. Popup UI (`extension/popup/`)
 
-#### 1. Dashboard Page (`pages/index.tsx`)
+**Purpose**: Main user interface accessible from the browser toolbar.
 
-**Purpose**: Main user interface for managing shows and preferences.
+**Files**:
+- `popup.html` - HTML structure
+- `popup.css` - Styles
+- `popup.js` - Interactive logic
 
 **Features**:
 - Display all available Broadway shows
-- Show preference matching status (checkmark or cross)
-- Manual override toggle buttons
-- Preference input and parsing
-- Action buttons (refresh, parse, apply)
+- Show enable/disable toggles
+- Preference input and AI parsing
+- Quick access to lottery pages
+- Lottery history viewing
 
-**State Management**:
-- User ID and preferences (local state)
-- Shows list with preference matching
-- Loading and message states
+**Communication**: Uses Chrome runtime messaging to communicate with background service worker.
 
-#### 2. Credentials Page (`pages/credentials.tsx`)
+### 2. Options Page (`extension/options/`)
 
-**Purpose**: Manage platform login credentials.
+**Purpose**: Full settings configuration page.
+
+**Files**:
+- `options.html` - HTML structure
+- `options.css` - Styles
+- `options.js` - Settings management
+
+**Settings**:
+- OpenAI API key configuration
+- Default user information (email, name)
+- Automatic application scheduling
+- Platform credentials management
+- Data export/clear functionality
+
+### 3. Background Service Worker (`extension/background/background.js`)
+
+**Purpose**: Centralized state management and background tasks.
+
+**Responsibilities**:
+- Handle all Chrome storage operations
+- Process messages from popup and content scripts
+- Manage scheduled alarms for automatic applications
+- Parse preferences using OpenAI API
+- Coordinate lottery applications
+
+**Key Functions**:
+- `handleMessage()` - Central message router
+- `getShowsWithPreferences()` - Match shows to user preferences
+- `handleDailyApply()` - Execute scheduled lottery applications
+- `parsePreferencesWithAI()` - Call OpenAI for preference parsing
+
+### 4. Content Script (`extension/content/content.js`)
+
+**Purpose**: Automates lottery form filling on supported pages.
+
+**Injection**: Automatically injected on BroadwayDirect and LuckySeat domains.
 
 **Features**:
-- Add new credentials with platform selection
-- View all credentials by platform
-- Delete credentials
-- Encrypted password storage
+- Detect lottery pages by hostname
+- Inject floating "Haman" button
+- Auto-fill forms with human-like behavior
+- Support both manual and automatic submission
+- Show visual notifications
 
-**Security**:
-- Passwords never displayed after storage
-- Encrypted before sending to API
-- Multiple accounts per platform support
+**Anti-Detection**:
+- Random delays between actions (50-800ms)
+- Character-by-character typing simulation
+- Proper event dispatching (input, change)
+- Smooth scrolling before clicks
 
-### API Routes (Serverless Functions)
+### 5. Shared Libraries (`extension/lib/`)
 
-#### 1. `/api/shows` - Show Listing with Preferences
+**Storage (`storage.js`)**:
+- Chrome storage API wrapper
+- Preference persistence
+- Override management
+- Credential storage
 
-**Method**: GET  
-**Parameters**: 
-- `userId` (required): User identifier
-- `preferences` (optional): Raw preference text
+**Show Catalog (`showCatalog.js`)**:
+- Known Broadway show database
+- URL-to-show mapping
+- Hostname validation
 
-**Response**:
-```typescript
+**Preference Parser (`preferenceParser.js`)**:
+- OpenAI API integration
+- Preference normalization
+- Show matching logic
+
+## Data Flow
+
+### User Enable/Disable Show
+
+```
+1. User clicks toggle in popup
+2. popup.js sends SET_OVERRIDE message
+3. Background worker receives message
+4. Override stored in chrome.storage.sync
+5. Background returns success
+6. Popup refreshes show list
+```
+
+### Manual Lottery Application
+
+```
+1. User clicks "🎯" button in popup
+2. New tab opens with lottery URL
+3. Content script detects lottery page
+4. Content script injects Haman button
+5. User clicks Haman button
+6. Content script requests settings from background
+7. Form fields filled with user data
+8. User manually clicks submit
+```
+
+### Automatic Lottery Application
+
+```
+1. Chrome alarm triggers at scheduled time
+2. Background worker executes handleDailyApply()
+3. Gets all enabled shows from storage
+4. For each enabled show:
+   a. Opens new background tab with lottery URL
+   b. Waits for page load
+   c. Sends FILL_LOTTERY_FORM message to content script
+   d. Content script fills and submits form
+   e. Result logged to lottery history
+5. All tabs processed sequentially
+```
+
+### AI Preference Parsing
+
+```
+1. User enters preferences in popup
+2. User clicks "Parse Preferences"
+3. popup.js sends PARSE_PREFERENCES message
+4. Background worker retrieves OpenAI API key
+5. Background calls OpenAI API with user text
+6. OpenAI returns structured JSON
+7. Parsed preferences stored in chrome.storage.sync
+8. Shows re-evaluated against preferences
+9. Popup refreshes to show matches
+```
+
+## Storage Schema
+
+### chrome.storage.sync (Synced across devices)
+
+```javascript
 {
-  shows: ShowWithPreference[]
-}
-```
-
-**Logic**:
-1. Get all active shows from catalog
-2. Fetch user overrides from KV storage
-3. If OpenAI key exists and preferences provided:
-   - Parse preferences with GPT-4
-   - Match each show against preferences
-4. Apply user overrides to final decisions
-5. Return shows with status information
-
-#### 2. `/api/override` - Save User Overrides
-
-**Method**: POST  
-**Body**:
-```json
-{
-  "userId": "string",
-  "showName": "string",
-  "platform": "socialtoaster" | "broadwaydirect",
-  "shouldApply": boolean | null
-}
-```
-
-**Logic**:
-- If `shouldApply` is null: delete override
-- Otherwise: save override to KV storage
-
-#### 3. `/api/parse-preferences` - AI Preference Parsing
-
-**Method**: POST  
-**Body**:
-```json
-{
-  "preferences": "string"
-}
-```
-
-**Response**:
-```typescript
-{
-  parsedPreferences: ParsedPreferences | null,
-  message?: string
-}
-```
-
-**Logic**:
-- If no OpenAI key: return null with message
-- Otherwise: call PreferenceParser service
-
-#### 4. `/api/apply-lotteries` - Apply to Shows
-
-**Method**: POST  
-**Body**:
-```json
-{
-  "userId": "string",
-  "email": "string",
-  "preferences": "string",
-  "firstName": "string",
-  "lastName": "string"
-}
-```
-
-**Logic**:
-1. Create/update user in database
-2. Get matching shows based on preferences and overrides
-3. Initialize lottery automation
-4. Apply to each matching show
-5. Return results
-
-#### 5. `/api/credentials` - Credential Management
-
-**Methods**: GET, POST, DELETE  
-**GET Parameters**: `userId`  
-**POST/DELETE Body**:
-```json
-{
-  "userId": "string",
-  "platform": "socialtoaster" | "broadwaydirect",
-  "email": "string",
-  "password": "string" (POST only)
-}
-```
-
-**Security**: Passwords encrypted before storage
-
-#### 6. `/api/refresh-shows` - Refresh Show Catalog
-
-**Method**: POST  
-**Response**: Current show catalog
-
-**Note**: Placeholder for future scraping implementation
-
-### Backend Services
-
-### 1. User Database (`src/database.ts`)
-
-**Purpose**: Manages user accounts and their preferences.
-
-**Responsibilities**:
-- Create, read, update, delete user accounts
-- Store user preferences (both raw text and parsed)
-- Generate unique user IDs
-
-**Current Implementation**: In-memory Map  
-**Production**: Can integrate with Vercel Postgres or other databases
-
-```typescript
-interface User {
-  id: string;
-  email: string;
-  preferences: string; // Raw text input
-  parsedPreferences?: ParsedPreferences; // AI-parsed structure
-  createdAt: Date;
-  updatedAt: Date;
-}
-```
-
-### 2. Preference Parser (`src/preferenceParser.ts`)
-
-**Purpose**: Converts free-text user preferences into structured data using AI.
-
-**Key Features**:
-- Uses OpenAI GPT-4 with JSON mode for reliable parsing
-- Extracts: genres, show names, price ranges, date ranges, exclusions
-- Validates and normalizes parsed data
-- Matches shows against user preferences
-
-**Example**:
-```
-Input: "I love musicals, especially Hamilton. Avoid The Lion King."
-Output: {
-  genres: ["musical"],
-  showNames: ["Hamilton"],
-  excludeShows: ["The Lion King"]
-}
-```
-
-### 3. Lottery Automation (`src/lotteryAutomation.ts`)
-
-**Purpose**: Browser automation for submitting lottery entries.
-
-**Anti-Detection Strategy**:
-1. **Browser Configuration**
-   - Disable automation flags
-   - Random user agent rotation
-   - Realistic viewport and device settings
-   - NYC geolocation (where Broadway is)
-
-2. **JavaScript Injection**
-   - Hide `navigator.webdriver` property
-   - Mock browser plugins
-   - Override permission APIs
-
-3. **Human-like Behavior**
-   - Random delays (500-3000ms)
-   - Variable typing speed (50-150ms per character)
-   - Page scrolling simulation
-   - Realistic navigation patterns
-
-**Platform Implementations**:
-- `SocialToasterAutomation`: For LuckySeat/SocialToaster platform
-- `BroadwayDirectAutomation`: For BroadwayDirect platform
-
-### 4. Show Catalog (`src/showCatalog.ts`)
-
-**Purpose**: Provides access to Broadway show listings through dynamic scraping and caching.
-
-**Data Structure**:
-```typescript
-interface Show {
-  name: string;
-  platform: 'socialtoaster' | 'broadwaydirect';
-  url: string;
-  genre?: string;
-  active: boolean;
-}
-```
-
-**Implementation**:
-- **Dynamic Loading**: Fetches shows from `/api/scrape-shows` endpoint
-- **Caching**: 1-hour in-memory cache to reduce API calls
-- **Fallback**: Uses known current shows if scraping fails
-- **Dual API**: Provides both async and sync methods for flexibility
-
-**Scraping API** (`/api/scrape-shows`):
-- Vercel serverless function that scrapes LuckySeat and BroadwayDirect
-- Anti-detection measures (user agents, delays, geolocation, webdriver hiding)
-- Request interspersing with 3-5 second delays between platforms
-- Returns current show listings or cached data
-- Automatically falls back to known shows if scraping blocked
-
-**Production Considerations**: 
-- Consider using Redis or DynamoDB for distributed caching
-- Monitor scraping success rate and adjust anti-detection measures
-- Add admin interface for manual show management
-
-### 5. Show Scraper API (`/api/scrape-shows`)
-
-**Purpose**: Vercel serverless function that dynamically scrapes current Broadway show listings.
-
-**Responsibilities**:
-- Scrape LuckySeat and BroadwayDirect lottery platforms
-- Extract show names, URLs, and metadata
-- Return structured show data
-- Implement caching to reduce scraping frequency
-- Provide fallback data when scraping fails
-
-**Anti-Detection Strategy**:
-1. **Browser Configuration**
-   - Random user agent rotation
-   - Realistic viewport settings (1920x1080)
-   - NYC geolocation (Broadway location)
-   - Proper locale and timezone
-
-2. **Request Interspersing**
-   - 2-4 second random delays for page loads
-   - 3-5 second delays between platforms
-   - Prevents rate limiting and detection
-
-3. **JavaScript Injection**
-   - Hides `navigator.webdriver` property
-   - Makes browser appear non-automated
-
-4. **Fallback Handling**
-   - Returns known current shows if scraping blocked
-   - Graceful degradation ensures system continues working
-
-**Caching**:
-- In-memory cache with 1-hour expiration
-- Query parameter `?refresh=true` forces cache refresh
-- Returns cache metadata (age, staleness)
-
-**Response Format**:
-```json
-{
-  "shows": [...],
-  "cached": false,
-  "totalShows": 10,
-  "breakdown": {
-    "luckyseat": 3,
-    "broadwaydirect": 7
+  settings: {
+    openaiApiKey: string?,
+    defaultEmail: string?,
+    defaultFirstName: string?,
+    defaultLastName: string?,
+    autoApplyEnabled: boolean,
+    autoApplyTime: string // "HH:MM"
+  },
+  overrides: [
+    {
+      showName: string,
+      platform: 'socialtoaster' | 'broadwaydirect',
+      shouldApply: boolean,
+      createdAt: string,
+      updatedAt: string
+    }
+  ],
+  credentials: [
+    {
+      id: string,
+      platform: string,
+      email: string,
+      encodedPassword: string, // Base64 encoded
+      createdAt: string,
+      updatedAt: string
+    }
+  ],
+  preferences: string, // Raw user preference text
+  parsedPreferences: {
+    genres: string[]?,
+    showNames: string[]?,
+    excludeShows: string[]?,
+    keywords: string[]?
   }
 }
 ```
 
-### 6. Lottery Service (`src/lotteryService.ts`)
+### chrome.storage.local (Device-specific)
 
-**Purpose**: Main orchestration layer that coordinates all components.
-
-**Workflow**:
-1. Get all users from database
-2. For each user:
-   - Parse preferences (if not already parsed)
-   - Find matching shows (fetches from scraper API)
-   - Group shows by platform
-   - Initialize browser automation
-   - Apply to each matching lottery
-   - Collect results
-3. Return aggregated results
-
-### 7. Lambda Handler (`src/handler.ts`)
-
-**Purpose**: Persistent storage for user overrides and platform credentials.
-
-**Storage Backend**:
-- **Production**: Vercel KV (Redis)
-- **Development**: In-memory Map (automatic fallback)
-
-**Data Stored**:
-
-1. **User Overrides**:
-   - Key pattern: `override:{userId}:{platform}:{showName}`
-   - Value: UserOverride object
-   - Purpose: Permanent manual enable/disable decisions
-
-2. **Platform Credentials**:
-   - Key pattern: `credentials:{userId}:{platform}:{email}`
-   - Value: PlatformCredentials object
-   - Purpose: Encrypted login credentials
-
-**Security Features**:
-- Password encryption before storage
-- Support for multiple accounts per platform
-- Automatic fallback to in-memory storage
-
-**Functions**:
-- `setUserOverride()` - Save show override
-- `getUserOverride()` - Get single override
-- `getAllUserOverrides()` - Get all overrides for user
-- `deleteUserOverride()` - Remove override
-- `savePlatformCredentials()` - Store encrypted credentials
-- `getPlatformCredentials()` - Retrieve credentials
-- `getDecryptedPassword()` - Decrypt stored password
-
-## Data Flow
-
-### Web Interface User Flow
+```javascript
+{
+  shows: [
+    {
+      name: string,
+      platform: string,
+      url: string,
+      genre: string?,
+      active: boolean
+    }
+  ],
+  showsTimestamp: number,
+  lotteryHistory: [
+    {
+      success: boolean,
+      showName: string,
+      platform: string,
+      error: string?,
+      timestamp: string
+    }
+  ]
+}
 ```
-1. User visits dashboard at /
-2. Frontend loads and fetches shows via GET /api/shows
-3. Shows displayed with preference matching status
-4. User can:
-   a. Enter preferences and click "Parse Preferences"
-      → POST /api/parse-preferences
-      → OpenAI parses text
-      → Shows refresh with new matches
-   
-   b. Toggle show overrides
-      → Click enable/disable button
-      → POST /api/override
-      → Override saved to Vercel KV
-      → Show status updates immediately
-   
-   c. Manage credentials
-      → Navigate to /credentials
-      → GET /api/credentials (load existing)
-      → POST /api/credentials (add new)
-      → DELETE /api/credentials (remove)
-   
-   d. Apply to lotteries
-      → Click "Apply to Lotteries"
-      → POST /api/apply-lotteries
-      → Backend processes each matching show
-      → Results displayed to user
-```
-
-### Override Decision Flow
-```
-1. User views show on dashboard
-2. System determines final decision:
-   
-   IF user has manual override for this show:
-      ✓ Use override value (true/false)
-   
-   ELSE IF OpenAI API key is configured AND preferences provided:
-      ✓ Use AI matching result
-   
-   ELSE:
-      ✗ Default to disabled (no OpenAI = no automatic matches)
-   
-3. Show displays with appropriate icon:
-   - ✓ Green checkmark if enabled
-   - ✗ Red cross if disabled
-   
-4. Status text shows reason:
-   - "Manually Enabled" (override = true)
-   - "Manually Disabled" (override = false)
-   - "Matches Preferences" (AI match, no override)
-   - "Does Not Match" (AI no match, no override)
-   - "No OpenAI - Disabled by default" (no API key)
-```
-
-## Anti-Detection Measures
-
-### Why Anti-Detection?
-
-Broadway lottery sites use Cloudflare and other anti-bot systems to prevent automated entries. Without proper measures, requests will be blocked.
-
-### Implementation Details
-
-1. **Browser Fingerprinting**
-   - Rotate user agents
-   - Set realistic viewport sizes
-   - Configure proper locale and timezone
-   - Add geolocation data
-
-2. **Webdriver Detection**
-   - Hide `navigator.webdriver` flag
-   - Mock browser plugins
-   - Override automation-related properties
-
-3. **Behavioral Analysis**
-   - Random delays between actions
-   - Variable typing speeds
-   - Mouse movement simulation (scrolling)
-   - Realistic page load waiting
-
-4. **Network Fingerprinting**
-   - Proper HTTP headers
-   - Accept-Language headers
-   - Security headers (Sec-Fetch-*)
-   - Connection keep-alive
-
-## Vercel Deployment
-
-### Configuration
-
-**Platform**: Vercel Edge Network with Next.js 15
-**Runtime**: Node.js (serverless functions)
-**Memory**: Configurable per function
-**Timeout**: 60 seconds (default for serverless functions)
-
-**Environment Variables**:
-- `OPENAI_API_KEY`: OpenAI API key (optional)
-- `NODE_ENV`: Environment (production/development)
-- `KV_URL`: Vercel KV connection URL (auto-configured)
-- `KV_REST_API_URL`: Vercel KV REST API URL (auto-configured)
-- `KV_REST_API_TOKEN`: Vercel KV auth token (auto-configured)
-
-### Deployment
-
-```bash
-npm run deploy
-```
-
-This deploys to Vercel with:
-- Static pages (prerendered)
-- Serverless API routes
-- Edge network CDN
-- Automatic HTTPS
-
-## Scalability Considerations
-
-### Current Approach
-
-1. **Vercel KV Storage**: Persistent storage with in-memory fallback
-2. **Serverless Functions**: Each API route scales independently
-3. **Edge Network**: Global CDN distribution
-
-### Production Enhancements
-
-1. **Database**
-   - Vercel KV is production-ready (Redis)
-   - Add indexes for efficient queries
-   - Implement user authentication
-
-2. **Parallel Processing**
-   - Use Lambda concurrency
-   - Process multiple users simultaneously
-   - Background job processing
-
-3. **Monitoring**
-   - Vercel Analytics
-   - Success/failure tracking
-   - Email notifications to users
-
-4. **Show Catalog**
-   - Web scraping for automatic updates
-   - Admin interface for manual updates
-   - Historical tracking of lottery availability
-
-## Error Handling
-
-### Types of Errors
-
-1. **Network Errors**: Timeout, connection refused
-2. **Parsing Errors**: Invalid HTML structure
-3. **Detection Errors**: Bot detection triggered
-4. **API Errors**: OpenAI API failures
-
-### Handling Strategy
-
-- All errors are caught and logged
-- Failed applications return `success: false` with error message
-- User applications continue even if one show fails
-- Retry logic can be added at service level
 
 ## Security Considerations
 
-1. **API Keys**: Stored in environment variables, never in code
-2. **User Data**: Email addresses should be encrypted at rest (production)
-3. **Rate Limiting**: Implement per-user limits to prevent abuse
-4. **Authentication**: Add OAuth or JWT for production web interface
+### URL Validation
+- All URL checks use `URL` constructor for proper parsing
+- Hostname validation instead of substring matching
+- Prevents URL manipulation attacks
 
-## Testing Strategy
+### Password Storage
+- Passwords are base64 encoded (obfuscation only)
+- Chrome's storage.sync provides some encryption
+- Users should understand this is not full encryption
 
-### Unit Tests
-- PreferenceParser: Test parsing logic with various inputs
-- Database: Test CRUD operations
-- Matching Logic: Test show matching with different preferences
+### API Key Handling
+- OpenAI API key stored in chrome.storage.sync
+- Never exposed to content scripts
+- Only used in background worker context
 
-### Integration Tests
-- Full flow from user creation to lottery application
-- Mock external APIs (OpenAI, lottery sites)
-- Test error handling paths
+### Content Script Isolation
+- Content scripts run in isolated world
+- Cannot access page JavaScript context
+- DOM manipulation only
 
-### Manual Testing
-- Test with real lottery URLs
-- Verify anti-detection measures work
-- Check form submission success
+## Supported Platforms
+
+### BroadwayDirect
+- **Domain**: `lottery.broadwaydirect.com`
+- **Shows**: Aladdin, Wicked, The Lion King, Hamilton, MJ, Six, etc.
+- **Form Fields**: Email, First Name, Last Name
+
+### LuckySeat (SocialToaster)
+- **Domain**: `www.luckyseat.com`
+- **Shows**: Hadestown, Moulin Rouge, Book of Mormon, Chicago, etc.
+- **Form Fields**: Email, First Name, Last Name
+
+## Extension Permissions
+
+```json
+{
+  "permissions": [
+    "storage",     // Store settings and preferences
+    "alarms",      // Schedule automatic applications
+    "activeTab",   // Access current tab
+    "scripting"    // Inject content scripts
+  ],
+  "host_permissions": [
+    "https://lottery.broadwaydirect.com/*",
+    "https://www.luckyseat.com/*",
+    "https://api.openai.com/*"
+  ]
+}
+```
+
+## Development
+
+### Build Process
+
+```bash
+npm run build
+```
+
+This runs `extension/build.sh` which:
+1. Creates dist directory
+2. Copies all source files
+3. Copies icons and assets
+
+### Loading Extension
+
+1. Open `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select `extension/dist/`
+
+### Testing
+
+1. Configure settings in extension options
+2. Navigate to lottery page
+3. Verify Haman button appears
+4. Click button to test form filling
+5. Check console for logs
 
 ## Future Enhancements
 
-1. **Web Interface**: React/Next.js UI for user management
-2. **Email Notifications**: Send results to users
-3. **Win Tracking**: Track and display lottery wins
-4. **Mobile App**: iOS/Android apps for on-the-go management
-5. **More Platforms**: Support additional lottery platforms
-6. **Smart Scheduling**: Learn optimal application times per show
-7. **Proxy Support**: Rotate IP addresses for better stealth
+- [ ] Web scraping for dynamic show catalog updates
+- [ ] Win tracking and statistics
+- [ ] Multiple user profile support
+- [ ] Firefox/Edge compatibility
+- [ ] Lottery result notifications
+- [ ] Advanced scheduling options
 
-## Dependencies
+## Legacy Code
 
-### Production Dependencies
-- `playwright`: Browser automation
-- `openai`: AI preference parsing
-- `@vercel/kv`: Vercel KV storage client
-- `next`: Next.js framework
-- `react`: React framework
-- `react-dom`: React DOM library
-- `dotenv`: Environment configuration
-
-### Development Dependencies
-- `typescript`: Type safety
-- `jest`: Testing framework
-- `eslint`: Code linting
-- `vercel`: Deployment CLI
-
-## Performance Metrics
-
-### Expected Performance
-- **Per User Processing**: 30-60 seconds (depends on number of matching shows)
-- **API Route Cold Start**: < 1 second (Vercel serverless function)
-- **API Route Warm Start**: < 100ms
-- **Cost**: ~$0.01 per 100 applications (Vercel + OpenAI API)
-
-### Optimization Opportunities
-1. Cache parsed preferences in KV storage
-2. Reuse browser instances within single invocation
-3. Batch OpenAI API calls
-4. Use edge functions for faster response times
+The `pages/`, `src/`, and `styles/` directories contain the previous serverless/Next.js implementation. These are preserved for reference but are no longer the primary implementation.
