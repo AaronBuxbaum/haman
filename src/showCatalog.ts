@@ -14,48 +14,76 @@ import { Show } from './types';
  * - As a safety net during API failures
  */
 const FALLBACK_SHOWS: Show[] = [
-  // SocialToaster shows (fallback)
+  // LuckySeat (SocialToaster) shows - known active lotteries as of 2026
   {
-    name: 'Hamilton',
+    name: 'Hadestown',
     platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/hamilton',
+    url: 'https://www.luckyseat.com/shows/hadestown-newyork',
+    genre: 'musical',
+    active: true
+  },
+  {
+    name: 'Moulin Rouge! The Musical',
+    platform: 'socialtoaster',
+    url: 'https://www.luckyseat.com/shows/moulinrouge!themusical-newyork',
+    genre: 'musical',
+    active: true
+  },
+  {
+    name: 'The Book of Mormon',
+    platform: 'socialtoaster',
+    url: 'https://www.luckyseat.com/shows/thebookofmormon-newyork',
+    genre: 'musical',
+    active: true
+  },
+  // BroadwayDirect shows - known active lotteries as of 2026
+  {
+    name: 'Aladdin',
+    platform: 'broadwaydirect',
+    url: 'https://lottery.broadwaydirect.com/show/aladdin/',
     genre: 'musical',
     active: true
   },
   {
     name: 'Wicked',
-    platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/wicked',
+    platform: 'broadwaydirect',
+    url: 'https://lottery.broadwaydirect.com/show/wicked/',
     genre: 'musical',
     active: true
   },
   {
     name: 'The Lion King',
-    platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/lion-king',
-    genre: 'musical',
-    active: true
-  },
-  // BroadwayDirect shows (fallback)
-  {
-    name: 'Book of Mormon',
     platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/book-of-mormon',
+    url: 'https://lottery.broadwaydirect.com/show/the-lion-king/',
     genre: 'musical',
     active: true
   },
   {
-    name: 'Chicago',
+    name: 'MJ',
     platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/chicago',
+    url: 'https://lottery.broadwaydirect.com/show/mj/',
     genre: 'musical',
     active: true
   },
   {
-    name: 'Moulin Rouge',
+    name: 'Six',
     platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/moulin-rouge',
+    url: 'https://lottery.broadwaydirect.com/show/six/',
     genre: 'musical',
+    active: true
+  },
+  {
+    name: 'Death Becomes Her',
+    platform: 'broadwaydirect',
+    url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/',
+    genre: 'musical',
+    active: true
+  },
+  {
+    name: 'Stranger Things: The First Shadow',
+    platform: 'broadwaydirect',
+    url: 'https://lottery.broadwaydirect.com/show/st-nyc/',
+    genre: 'play',
     active: true
   }
 ];

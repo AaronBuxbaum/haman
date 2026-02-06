@@ -32,15 +32,15 @@ describe('showCatalog', () => {
 
   describe('getShowByName', () => {
     it('should find a show by exact name (case insensitive)', () => {
-      const show = getShowByNameSync('Hamilton');
+      const show = getShowByNameSync('Hadestown');
       expect(show).toBeDefined();
-      expect(show?.name).toBe('Hamilton');
+      expect(show?.name).toBe('Hadestown');
     });
 
     it('should find a show by lowercase name', () => {
-      const show = getShowByNameSync('hamilton');
+      const show = getShowByNameSync('hadestown');
       expect(show).toBeDefined();
-      expect(show?.name).toBe('Hamilton');
+      expect(show?.name).toBe('Hadestown');
     });
 
     it('should return undefined for non-existent show', () => {

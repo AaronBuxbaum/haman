@@ -58,26 +58,47 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
     // Wait for shows to load
     await randomDelay(2000, 4000);
     
-    // Extract show information from the page
-    // This is a simplified version - actual selectors would need to be determined by inspecting the live site
+    // Try to find any visible links or show listings
+    // Use multiple selector strategies to find shows
     const luckySeatShows = await page.evaluate(() => {
-      const showElements = document.querySelectorAll('[data-show], .show-card, .lottery-show');
       const extractedShows: Array<{name: string; url: string; genre?: string}> = [];
       
-      showElements.forEach(el => {
-        const nameEl = el.querySelector('.show-name, .title, h2, h3');
-        const linkEl = el.querySelector('a');
-        
-        if (nameEl && linkEl) {
-          const name = nameEl.textContent?.trim();
-          const href = linkEl.getAttribute('href');
+      // Strategy 1: Look for common show container patterns
+      const containers = document.querySelectorAll(
+        'a[href*="/show"], ' +
+        'a[href*="/lottery"], ' +
+        '[class*="show"] a, ' +
+        '[class*="lottery"] a, ' +
+        '[data-show] a, ' +
+        '.card a, ' +
+        '.item a'
+      );
+      
+      const seen = new Set<string>();
+      
+      containers.forEach(el => {
+        if (el instanceof HTMLAnchorElement) {
+          const href = el.getAttribute('href');
+          const text = el.textContent?.trim() || el.getAttribute('title') || el.getAttribute('aria-label');
           
-          if (name && href) {
-            extractedShows.push({
-              name,
-              url: href.startsWith('http') ? href : `https://www.luckyseat.com${href}`,
-              genre: 'musical' // Default - could be extracted from page metadata
-            });
+          if (href && text && href.includes('show') && !seen.has(href)) {
+            // Clean up the show name
+            let name = text.replace(/\s*lottery\s*/gi, '').trim();
+            
+            // Skip if it's navigation or footer links
+            if (name.length > 0 && name.length < 100 && 
+                !name.toLowerCase().includes('about') &&
+                !name.toLowerCase().includes('contact') &&
+                !name.toLowerCase().includes('terms') &&
+                !name.toLowerCase().includes('privacy')) {
+              
+              seen.add(href);
+              extractedShows.push({
+                name,
+                url: href.startsWith('http') ? href : `https://www.luckyseat.com${href}`,
+                genre: 'musical' // Default - could be extracted from page metadata
+              });
+            }
           }
         }
       });
@@ -99,7 +120,14 @@ async function scrapeLuckySeat(browser: Browser): Promise<Show[]> {
     console.log(`Scraped ${shows.length} shows from LuckySeat`);
   } catch (error) {
     console.error('Error scraping LuckySeat:', error);
-    // Return partial results on error
+    // Fallback to known shows if scraping fails
+    const fallbackShows: Show[] = [
+      { name: 'Hadestown', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/hadestown-newyork', genre: 'musical', active: true },
+      { name: 'Moulin Rouge! The Musical', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/moulinrouge!themusical-newyork', genre: 'musical', active: true },
+      { name: 'The Book of Mormon', platform: 'socialtoaster', url: 'https://www.luckyseat.com/shows/thebookofmormon-newyork', genre: 'musical', active: true },
+    ];
+    shows.push(...fallbackShows);
+    console.log(`Using fallback shows for LuckySeat (${fallbackShows.length} shows)`);
   }
   
   return shows;
@@ -139,23 +167,43 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
     
     // Extract show information from the page
     const broadwayDirectShows = await page.evaluate(() => {
-      const showElements = document.querySelectorAll('[data-show], .show-card, .lottery-show, .show-item');
       const extractedShows: Array<{name: string; url: string; genre?: string}> = [];
       
-      showElements.forEach(el => {
-        const nameEl = el.querySelector('.show-name, .title, h2, h3');
-        const linkEl = el.querySelector('a');
-        
-        if (nameEl && linkEl) {
-          const name = nameEl.textContent?.trim();
-          const href = linkEl.getAttribute('href');
+      // Strategy: Look for show links
+      const containers = document.querySelectorAll(
+        'a[href*="/show"], ' +
+        '[class*="show"] a, ' +
+        '[class*="lottery"] a, ' +
+        '[data-show] a, ' +
+        '.card a, ' +
+        '.item a'
+      );
+      
+      const seen = new Set<string>();
+      
+      containers.forEach(el => {
+        if (el instanceof HTMLAnchorElement) {
+          const href = el.getAttribute('href');
+          const text = el.textContent?.trim() || el.getAttribute('title') || el.getAttribute('aria-label');
           
-          if (name && href) {
-            extractedShows.push({
-              name,
-              url: href.startsWith('http') ? href : `https://lottery.broadwaydirect.com${href}`,
-              genre: 'musical' // Default - could be extracted from page metadata
-            });
+          if (href && text && href.includes('show') && !seen.has(href)) {
+            // Clean up the show name
+            let name = text.replace(/\s*lottery\s*/gi, '').trim();
+            
+            // Skip if it's navigation or footer links
+            if (name.length > 0 && name.length < 100 && 
+                !name.toLowerCase().includes('about') &&
+                !name.toLowerCase().includes('contact') &&
+                !name.toLowerCase().includes('terms') &&
+                !name.toLowerCase().includes('privacy')) {
+              
+              seen.add(href);
+              extractedShows.push({
+                name,
+                url: href.startsWith('http') ? href : `https://lottery.broadwaydirect.com${href}`,
+                genre: 'musical' // Default
+              });
+            }
           }
         }
       });
@@ -177,7 +225,18 @@ async function scrapeBroadwayDirect(browser: Browser): Promise<Show[]> {
     console.log(`Scraped ${shows.length} shows from BroadwayDirect`);
   } catch (error) {
     console.error('Error scraping BroadwayDirect:', error);
-    // Return partial results on error
+    // Fallback to known shows if scraping fails
+    const fallbackShows: Show[] = [
+      { name: 'Aladdin', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/aladdin/', genre: 'musical', active: true },
+      { name: 'Wicked', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/wicked/', genre: 'musical', active: true },
+      { name: 'The Lion King', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/the-lion-king/', genre: 'musical', active: true },
+      { name: 'MJ', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/mj/', genre: 'musical', active: true },
+      { name: 'Six', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/six/', genre: 'musical', active: true },
+      { name: 'Death Becomes Her', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/', genre: 'musical', active: true },
+      { name: 'Stranger Things: The First Shadow', platform: 'broadwaydirect', url: 'https://lottery.broadwaydirect.com/show/st-nyc/', genre: 'play', active: true },
+    ];
+    shows.push(...fallbackShows);
+    console.log(`Using fallback shows for BroadwayDirect (${fallbackShows.length} shows)`);
   }
   
   return shows;
