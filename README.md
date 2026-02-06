@@ -279,15 +279,18 @@ npm test
 
 ## GitHub Copilot Configuration
 
-This repository is configured with GitHub Copilot instructions and custom agents to help with development:
+This repository is fully configured with GitHub Copilot instructions and custom agents to help with development:
 
-- **Copilot Instructions**: See `.github/copilot-instructions.md` for comprehensive guidelines on code style, testing, architecture, and project-specific considerations
-- **Custom Agents**: Specialized agents available in `.github/agents/`:
+- **📋 Copilot Instructions**: See `.github/copilot-instructions.md` for comprehensive guidelines on code style, testing, architecture, and project-specific considerations
+- **⚙️ Setup Steps**: See `.github/copilot-setup-steps.yaml` for environment setup, build commands, and development workflow
+- **🤖 Custom Agents**: Specialized agents available in `.github/agents/`:
   - **General Purpose**: Bug fixes, features, and refactoring
   - **Documentation**: Maintaining and improving documentation
   - **Testing**: Creating and maintaining test suites
 
-These configurations help Copilot provide context-aware assistance tailored to this project's needs.
+These configurations help GitHub Copilot provide context-aware assistance tailored to this project's needs. Copilot can help you understand the codebase, write tests, fix bugs, and implement features while following project conventions.
+
+For more information on using Copilot with this repository, see the [best practices guide](https://docs.github.com/en/copilot/how-tos/agents/copilot-coding-agent/best-practices-for-using-copilot-to-work-on-tasks).
 
 ## License
 

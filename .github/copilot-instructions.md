@@ -1,25 +1,25 @@
 # GitHub Copilot Instructions for Haman Repository
 
 ## Project Overview
-Haman is a Broadway lottery automation system that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries. The system uses OpenAI GPT-4 to parse user preferences and Playwright for browser automation, deployed as serverless functions on AWS Lambda.
+Haman is a Broadway lottery automation system that combines AI-powered preference parsing with browser automation to automatically apply to Broadway show lotteries. The system uses OpenAI GPT-4 to parse user preferences and Playwright for browser automation, deployed as serverless functions on Vercel.
 
 **Key Technologies:**
-- **Runtime**: Node.js 20.x with TypeScript
+- **Runtime**: Node.js 18+ with TypeScript
 - **AI**: OpenAI GPT-4 API for natural language preference parsing
 - **Automation**: Playwright for browser automation with anti-detection measures
-- **Cloud**: AWS Lambda with serverless framework
-- **Testing**: Jest with ts-jest
+- **Cloud**: Vercel serverless functions with Next.js
+- **Testing**: Bun Test (Jest-compatible)
 - **Linting**: ESLint with TypeScript support
 
 ## Architecture Overview
 
 ### Core Components
-1. **User Database** (`src/database.ts`): User management with in-memory storage
+1. **User Database** (`src/database.ts`): User management with in-memory storage and Vercel KV support
 2. **Preference Parser** (`src/preferenceParser.ts`): AI-powered parsing of user preferences using GPT-4
 3. **Lottery Automation** (`src/lotteryAutomation.ts`): Playwright-based automation with anti-detection
-4. **Show Catalog** (`src/showCatalog.ts`): Broadway show listings and lottery URLs
+4. **Show Catalog** (`src/showCatalog.ts`): Broadway show listings and lottery URLs (dynamically scraped)
 5. **Lottery Service** (`src/lotteryService.ts`): Main orchestration layer
-6. **Lambda Handler** (`src/handler.ts`): AWS Lambda entry point
+6. **API Routes** (`pages/api/`): Next.js serverless API endpoints
 
 See `ARCHITECTURE.md` for detailed system design and data flow diagrams.
 
@@ -27,23 +27,24 @@ See `ARCHITECTURE.md` for detailed system design and data flow diagrams.
 
 ### Prerequisites
 - Node.js 18+ and npm
-- AWS CLI configured (for deployment)
-- OpenAI API key
+- Vercel CLI (optional, for deployment)
+- OpenAI API key (optional - system works without it)
 
 ### Build, Test, and Lint Commands
 ```bash
 npm install          # Install dependencies
-npm run build        # TypeScript compilation
+npm run build        # Next.js build (TypeScript compilation)
 npm run lint         # ESLint checks
-npm test             # Run Jest tests
-npm run dev          # Run example CLI locally
-npm run deploy       # Deploy to AWS Lambda
+npm test             # Run Bun tests
+npm run dev          # Run development server (http://localhost:3000)
+npm run deploy       # Deploy to Vercel
 ```
 
 ### Environment Variables
 Create a `.env` file with:
-- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `OPENAI_API_KEY`: Your OpenAI API key (optional - system works without it)
 - `NODE_ENV`: Environment (production/development)
+- Vercel KV variables are auto-configured in production
 
 ## Code Style and Best Practices
 
@@ -64,8 +65,8 @@ Create a `.env` file with:
 ## Testing Guidelines
 
 ### Testing Framework
-- **Framework**: Jest with ts-jest preset
-- **Test files**: Place tests in `__tests__` directories or use `.test.ts` / `.spec.ts` suffixes
+- **Framework**: Bun Test (Jest-compatible syntax)
+- **Test files**: Use `.test.ts` suffix
 - **Coverage**: Aim for meaningful coverage of core logic
 
 ### Writing Tests
@@ -78,9 +79,7 @@ Create a `.env` file with:
 
 ### Running Tests
 ```bash
-npm test              # Run all tests
-npm test -- --watch   # Watch mode
-npm test -- --coverage # Generate coverage report
+npm test              # Run all tests with Bun
 ```
 
 ## Documentation Standards
@@ -115,12 +114,13 @@ This project implements browser automation to apply to Broadway lotteries. Anti-
 - Random delays and human-like behavior are intentional - do not remove
 - See ARCHITECTURE.md "Anti-Detection Measures" section for details
 
-### Serverless/AWS Lambda Considerations
-- **Cold starts**: Keep Lambda warm with CloudWatch Events if needed
-- **Timeout**: Functions have 5-minute timeout for browser operations
-- **Memory**: 1024 MB allocated for Playwright browser
-- **Dependencies**: Playwright requires special Lambda layer or bundling
+### Serverless/Vercel Considerations
+- **Cold starts**: Vercel serverless functions may have cold starts
+- **Timeout**: Functions have 60-second default timeout (configurable)
+- **Memory**: Configurable per function
+- **Dependencies**: Playwright works with proper configuration on Vercel
 - **Environment**: Use environment variables for configuration (never hardcode secrets)
+- **Storage**: Vercel KV (Redis) for persistent data
 
 ### AI/OpenAI Integration
 - **Model**: Uses GPT-4 with JSON mode for structured output
@@ -131,7 +131,8 @@ This project implements browser automation to apply to Broadway lotteries. Anti-
 ### Dependency Management
 - **Playwright**: Browser automation library - version updates may affect anti-detection
 - **OpenAI SDK**: Keep aligned with API changes
-- **AWS SDK**: Required for production database integration
+- **Vercel KV**: Redis-based storage for production
+- **Next.js**: Keep aligned with Vercel platform updates
 - **Security**: Review dependencies for vulnerabilities before updating
 
 ## Version Control Best Practices
@@ -190,16 +191,16 @@ This project implements browser automation to apply to Broadway lotteries. Anti-
 
 ### Deployment Process
 ```bash
-npm run build        # Compile TypeScript
-serverless deploy    # Deploy to AWS Lambda
+npm run build        # Build Next.js application
+npm run deploy       # Deploy to Vercel
 ```
 
 ### Production Considerations
-- **Database**: Current in-memory database won't persist between Lambda invocations
-- **Monitoring**: Use CloudWatch for logs and metrics
-- **Scaling**: Lambda concurrency can be adjusted for parallel processing
-- **Scheduling**: Runs daily at 9 AM and 11 AM EST via CloudWatch Events
-- **Cost optimization**: Keep functions warm, reuse browser instances, batch API calls
+- **Database**: Vercel KV (Redis) for persistent storage
+- **Monitoring**: Use Vercel Analytics for logs and metrics
+- **Scaling**: Vercel serverless functions scale automatically
+- **Scheduling**: Runs daily at 9 AM and 11 AM EST via Vercel Cron
+- **Cost optimization**: Minimize function execution time, reuse browser instances, batch API calls
 
 ## Getting Help
 
