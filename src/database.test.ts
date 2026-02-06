@@ -1,3 +1,4 @@
+import { describe, test, expect, beforeEach } from 'bun:test';
 import { UserDatabase } from './database';
 
 describe('UserDatabase', () => {
@@ -8,7 +9,7 @@ describe('UserDatabase', () => {
   });
 
   describe('createUser', () => {
-    it('should create a user with required fields', () => {
+    test('should create a user with required fields', () => {
       const user = db.createUser('test@example.com', 'I love musicals');
       
       expect(user.id).toBeDefined();
@@ -18,14 +19,14 @@ describe('UserDatabase', () => {
       expect(user.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should create a user with optional fields', () => {
+    test('should create a user with optional fields', () => {
       const user = db.createUser('test@example.com', 'I love musicals', 'John', 'Doe');
       
       expect(user.firstName).toBe('John');
       expect(user.lastName).toBe('Doe');
     });
 
-    it('should generate unique IDs for different users', () => {
+    test('should generate unique IDs for different users', () => {
       const user1 = db.createUser('user1@example.com', 'preferences1');
       const user2 = db.createUser('user2@example.com', 'preferences2');
       
@@ -34,7 +35,7 @@ describe('UserDatabase', () => {
   });
 
   describe('getUser', () => {
-    it('should retrieve a user by ID', () => {
+    test('should retrieve a user by ID', () => {
       const created = db.createUser('test@example.com', 'preferences');
       const retrieved = db.getUser(created.id);
       
@@ -43,14 +44,14 @@ describe('UserDatabase', () => {
       expect(retrieved?.email).toBe('test@example.com');
     });
 
-    it('should return undefined for non-existent user', () => {
+    test('should return undefined for non-existent user', () => {
       const user = db.getUser('non-existent-id');
       expect(user).toBeUndefined();
     });
   });
 
   describe('getUserByEmail', () => {
-    it('should retrieve a user by email', () => {
+    test('should retrieve a user by email', () => {
       const created = db.createUser('test@example.com', 'preferences');
       const retrieved = db.getUserByEmail('test@example.com');
       
@@ -58,19 +59,19 @@ describe('UserDatabase', () => {
       expect(retrieved?.id).toBe(created.id);
     });
 
-    it('should return undefined for non-existent email', () => {
+    test('should return undefined for non-existent email', () => {
       const user = db.getUserByEmail('nonexistent@example.com');
       expect(user).toBeUndefined();
     });
   });
 
   describe('getAllUsers', () => {
-    it('should return empty array when no users exist', () => {
+    test('should return empty array when no users exist', () => {
       const users = db.getAllUsers();
       expect(users).toEqual([]);
     });
 
-    it('should return all users', () => {
+    test('should return all users', () => {
       db.createUser('user1@example.com', 'pref1');
       db.createUser('user2@example.com', 'pref2');
       db.createUser('user3@example.com', 'pref3');
@@ -81,7 +82,7 @@ describe('UserDatabase', () => {
   });
 
   describe('updateUserPreferences', () => {
-    it('should update user preferences', () => {
+    test('should update user preferences', () => {
       const user = db.createUser('test@example.com', 'old preferences');
       const originalUpdatedAt = user.updatedAt;
       
@@ -95,14 +96,14 @@ describe('UserDatabase', () => {
       expect(updated?.updatedAt.getTime()).toBeGreaterThanOrEqual(originalUpdatedAt.getTime());
     });
 
-    it('should return undefined for non-existent user', () => {
+    test('should return undefined for non-existent user', () => {
       const updated = db.updateUserPreferences('non-existent-id', 'new preferences');
       expect(updated).toBeUndefined();
     });
   });
 
   describe('deleteUser', () => {
-    it('should delete an existing user', () => {
+    test('should delete an existing user', () => {
       const user = db.createUser('test@example.com', 'preferences');
       
       const deleted = db.deleteUser(user.id);
@@ -112,7 +113,7 @@ describe('UserDatabase', () => {
       expect(retrieved).toBeUndefined();
     });
 
-    it('should return false for non-existent user', () => {
+    test('should return false for non-existent user', () => {
       const deleted = db.deleteUser('non-existent-id');
       expect(deleted).toBe(false);
     });
