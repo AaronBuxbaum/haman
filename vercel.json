@@ -4,6 +4,20 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
+  "functions": {
+    "pages/api/scrape-shows.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "pages/api/apply-lotteries.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    },
+    "pages/api/apply-lotteries-cron.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
   "crons": [
     {
       "path": "/api/apply-lotteries-cron",

@@ -1,4 +1,5 @@
-import { chromium, Browser, Page, BrowserContext } from 'playwright';
+import { chromium, Browser, Page, BrowserContext } from 'playwright-core';
+import chromiumPackage from '@sparticuz/chromium';
 import { Show, User } from './types';
 
 /**
@@ -90,10 +91,15 @@ export abstract class LotteryAutomation {
    * @throws Error if browser fails to launch
    */
   async initialize(): Promise<void> {
+    // Get the executable path for serverless Chromium
+    const executablePath = await chromiumPackage.executablePath();
+    
     // Launch browser with anti-detection settings
     this.browser = await chromium.launch({
+      executablePath,
       headless: true,
       args: [
+        ...chromiumPackage.args,
         // Disable the automation-controlled flag that sites can detect
         '--disable-blink-features=AutomationControlled',
         // Disable site isolation features that can affect behavior

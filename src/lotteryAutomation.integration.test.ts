@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { BrowserContext } from 'playwright';
+import { BrowserContext } from 'playwright-core';
 import { SocialToasterAutomation, BroadwayDirectAutomation } from './lotteryAutomation';
 import { Show, User } from './types';
 
