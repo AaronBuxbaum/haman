@@ -125,7 +125,9 @@ async function clickEnterNowButton() {
     });
     
     // Prefer buttons with btn-primary class (active lotteries)
-    enterButton = enterButtons.find(btn => btn.classList.contains('btn-primary')) || enterButtons[0];
+    if (enterButtons.length > 0) {
+      enterButton = enterButtons.find(btn => btn.classList.contains('btn-primary')) || enterButtons[0];
+    }
     
     if (enterButton) {
       console.log('Haman: Found "Enter Now"/"Enter" button with text matching (fallback)');
@@ -230,7 +232,9 @@ function isElementVisible(element) {
   // For fixed position elements, check computed style
   const style = window.getComputedStyle(element);
   if (style.position === 'fixed') {
-    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+    return style.display !== 'none' && 
+           style.visibility !== 'hidden' && 
+           parseFloat(style.opacity) > 0;
   }
   
   // Check dimensions as final fallback
@@ -526,10 +530,11 @@ async function fillLotteryForm(data) {
       // Get form elements (within modal if it exists)
       const elements = findBroadwayDirectElements(searchContext);
       
-      // Log which elements were found
-      const foundElements = Object.entries(elements)
-        .filter(([, value]) => value !== null)
-        .map(([key]) => key);
+      // Log which elements were found (single-pass iteration)
+      const foundElements = Object.entries(elements).reduce((acc, [key, value]) => {
+        if (value !== null) acc.push(key);
+        return acc;
+      }, []);
       console.log(`Haman: Found ${foundElements.length} form elements:`, foundElements.join(', '));
       
       // Fill the form with all fields
