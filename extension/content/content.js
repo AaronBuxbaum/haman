@@ -107,20 +107,42 @@ function detectPlatform() {
  * Returns true if button was found and clicked
  */
 async function clickEnterNowButton() {
-  // Look for "Enter Now" link/button on the lottery listing page
-  const enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
-    const text = el.textContent?.toLowerCase().trim();
-    return text === 'enter now' || text === 'enter lottery' || text === 'enter';
-  });
+  // First, try to find the specific "Enter Now" link with the enter-lottery-link class
+  // Note: On small screens, buttons may say just "Enter" instead of "Enter Now"
+  let enterButton = document.querySelector('a.enter-lottery-link, a.enter-button');
+  
+  if (enterButton) {
+    console.log('Haman: Found "Enter Now"/"Enter" button with class selector');
+  } else {
+    // Fallback: Look for any button/link with "Enter" text
+    // This handles both "Enter" (small screens) and "Enter Now" (large screens)
+    const enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
+      const text = el.textContent?.toLowerCase().trim();
+      // Use word boundary matching to avoid matching "entertainment", "center", etc.
+      // Match "enter", "enter now", "enter lottery" but exclude "already entered"
+      return (/\benter\b/.test(text) && !text.includes('already entered') && 
+              !text.includes('check') && !text.includes('closed') && !text.includes('upcoming'));
+    });
+    
+    // Prefer buttons with btn-primary class (active lotteries)
+    if (enterButtons.length > 0) {
+      enterButton = enterButtons.find(btn => btn.classList.contains('btn-primary')) || enterButtons[0];
+    }
+    
+    if (enterButton) {
+      console.log('Haman: Found "Enter Now"/"Enter" button with text matching (fallback)');
+    }
+  }
 
-  if (enterButtons.length > 0) {
-    console.log('Haman: Found "Enter Now" button, clicking...');
-    await clickElement(enterButtons[0]);
-    // Wait for form to load
+  if (enterButton) {
+    console.log('Haman: Clicking "Enter Now" button...', enterButton.href || enterButton.textContent);
+    await clickElement(enterButton);
+    // Wait for modal/form to load
     await randomDelay(1500, 2500);
     return true;
   }
 
+  console.log('Haman: No "Enter Now" button found on page');
   return false;
 }
 
@@ -153,72 +175,164 @@ function waitForElement(selector, timeout = 5000) {
 }
 
 /**
+ * Wait for and detect a modal/popup to appear after clicking "Enter Now"
+ * Returns the modal container element or iframe's contentDocument, or null
+ */
+async function waitForModal(timeout = 5000) {
+  // Common modal selectors used by lottery sites
+  const modalSelectors = [
+    '.modal.show',                    // Bootstrap modal
+    '.modal.in',                      // Bootstrap 3 modal
+    '[role="dialog"]',                // ARIA dialog
+    '.popup-content',                 // Custom popup
+    '#lottery-modal',                 // Specific lottery modal
+    '.lottery-popup',                 // Lottery-specific popup
+    '.fancybox-container',            // Fancybox modal library
+    '.mfp-content',                   // Magnific Popup library
+    '.colorbox',                      // Colorbox modal library
+    'iframe[src*="enter-lottery"]',   // If it's in an iframe
+    'iframe[src*="lottery"]',         // Generic lottery iframe
+    '.dlslot-container',              // BroadwayDirect lottery container
+    '#dlslot-modal',                  // BroadwayDirect modal
+  ];
+
+  // First, check if any modal is already visible
+  for (const selector of modalSelectors) {
+    const modal = document.querySelector(selector);
+    if (modal && isElementVisible(modal)) {
+      console.log(`Haman: Found existing modal with selector: ${selector}`);
+      return handleModalElement(modal);
+    }
+  }
+
+  // If not found immediately, wait for one to appear (with shorter timeout per selector)
+  const selectorTimeout = Math.min(1000, timeout / modalSelectors.length);
+  
+  for (const selector of modalSelectors) {
+    const modal = await waitForElement(selector, selectorTimeout);
+    if (modal && isElementVisible(modal)) {
+      console.log(`Haman: Detected modal with selector: ${selector}`);
+      return handleModalElement(modal);
+    }
+  }
+
+  console.log('Haman: No modal detected, form may be on current page');
+  return null;
+}
+
+/**
+ * Check if element is visible (handles fixed positioning and various visibility scenarios)
+ */
+function isElementVisible(element) {
+  if (!element) return false;
+  
+  // Check offsetParent (works for most cases)
+  if (element.offsetParent !== null) return true;
+  
+  // For fixed position elements, check computed style
+  const style = window.getComputedStyle(element);
+  if (style.position === 'fixed') {
+    return style.display !== 'none' && 
+           style.visibility !== 'hidden' && 
+           parseFloat(style.opacity) > 0;
+  }
+  
+  // Check dimensions as final fallback
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+/**
+ * Handle modal element - extract iframe content if needed
+ */
+async function handleModalElement(modal) {
+  // If it's an iframe, return its contentDocument
+  if (modal.tagName === 'IFRAME') {
+    try {
+      const iframeDoc = modal.contentDocument || modal.contentWindow?.document;
+      if (iframeDoc) {
+        console.log('Haman: Accessing iframe content for form filling');
+        // Wait a bit for iframe content to load
+        await randomDelay(500, 1000);
+        return iframeDoc;
+      }
+    } catch (e) {
+      console.log('Haman: Could not access iframe content (cross-origin?)', e);
+      return null;
+    }
+  }
+  
+  return modal;
+}
+
+/**
  * Find form elements on BroadwayDirect
  * BroadwayDirect lottery form includes: first name, last name, quantity, email, DOB, zip, country, terms, recaptcha
+ * @param {Element} context - Optional context element (e.g., modal) to search within
  */
-function findBroadwayDirectElements() {
+function findBroadwayDirectElements(context = document) {
   // First name input
-  const firstNameInput = document.querySelector(
+  const firstNameInput = context.querySelector(
     'input[name="dlslot_name_first"], input[name="firstName"], input[name="first_name"], ' +
     'input[id*="first" i][type="text"], input[placeholder*="first name" i]'
   );
 
   // Last name input
-  const lastNameInput = document.querySelector(
+  const lastNameInput = context.querySelector(
     'input[name="dlslot_name_last"], input[name="lastName"], input[name="last_name"], ' +
     'input[id*="last" i][type="text"], input[placeholder*="last name" i]'
   );
 
   // Number of tickets dropdown
-  const ticketQuantitySelect = document.querySelector(
+  const ticketQuantitySelect = context.querySelector(
     'select[name="dlslot_ticket_qty"], select[name="num_tickets"], select[name="quantity"], ' +
     'select[id*="ticket" i], select[id*="qty" i], select[id*="quantity" i]'
   );
 
   // Email input
-  const emailInput = document.querySelector(
+  const emailInput = context.querySelector(
     'input[name="dlslot_email"], input[type="email"], input[name="email"], ' +
     'input[id*="email" i], input[placeholder*="email" i]'
   );
 
   // Date of birth fields (month, day, year dropdowns or single input)
-  const dobMonthSelect = document.querySelector(
+  const dobMonthSelect = context.querySelector(
     'select[name="dlslot_dob_month"], select[name="dob_month"], select[id*="month" i]'
   );
-  const dobDaySelect = document.querySelector(
+  const dobDaySelect = context.querySelector(
     'select[name="dlslot_dob_day"], select[name="dob_day"], select[id*="day" i]'
   );
-  const dobYearSelect = document.querySelector(
+  const dobYearSelect = context.querySelector(
     'select[name="dlslot_dob_year"], select[name="dob_year"], select[id*="year" i]'
   );
 
   // Zip code input
-  const zipInput = document.querySelector(
+  const zipInput = context.querySelector(
     'input[name="dlslot_zip"], input[name="zip"], input[name="zipcode"], input[name="postal_code"], ' +
     'input[id*="zip" i], input[placeholder*="zip" i]'
   );
 
   // Country select
-  const countrySelect = document.querySelector(
+  const countrySelect = context.querySelector(
     'select[name="dlslot_country"], select[name="country"], select[id*="country" i]'
   );
 
   // Terms and conditions checkbox
-  const termsCheckbox = document.querySelector(
+  const termsCheckbox = context.querySelector(
     'input[name="dlslot_agree"], input[name="agree"], input[name="terms"], ' +
     'input[type="checkbox"][id*="terms" i], input[type="checkbox"][id*="agree" i], ' +
     'input[type="checkbox"][name*="agree" i]'
   );
 
   // reCAPTCHA checkbox (if accessible - often in iframe)
-  const recaptchaCheckbox = document.querySelector(
+  const recaptchaCheckbox = context.querySelector(
     '.recaptcha-checkbox, #recaptcha-anchor, .rc-anchor-checkbox'
   );
 
   // Submit button - look for "Enter" button specifically
-  const submitButton = document.querySelector(
+  const submitButton = context.querySelector(
     'button[type="submit"], input[type="submit"]'
-  ) || Array.from(document.querySelectorAll('button')).find((btn) => {
+  ) || Array.from(context.querySelectorAll('button')).find((btn) => {
     const text = btn.textContent?.toLowerCase().trim();
     return text === 'enter' || text === 'submit' || text === 'enter lottery';
   });
@@ -400,11 +514,55 @@ async function fillLotteryForm(data) {
     // Check if we're on a lottery listing page (not the form page)
     const hasEnterNow = await clickEnterNowButton();
     if (hasEnterNow) {
-      console.log('Haman: Clicked "Enter Now", waiting for form...');
-      await randomDelay(1500, 2500);
+      console.log('Haman: Clicked "Enter Now", waiting for modal/form...');
+      
+      // Wait for modal to appear
+      const modal = await waitForModal(5000);
+      
+      // Determine search context (modal or document)
+      const searchContext = modal || document;
+      if (modal) {
+        console.log('Haman: Found modal, searching for form elements within modal');
+      } else {
+        console.log('Haman: No modal detected, searching for form elements on page');
+      }
+      
+      // Get form elements (within modal if it exists)
+      const elements = findBroadwayDirectElements(searchContext);
+      
+      // Log which elements were found (single-pass iteration)
+      const foundElements = Object.entries(elements).reduce((acc, [key, value]) => {
+        if (value !== null) acc.push(key);
+        return acc;
+      }, []);
+      console.log(`Haman: Found ${foundElements.length} form elements:`, foundElements.join(', '));
+      
+      // Fill the form with all fields
+      const filledCount = await fillBroadwayDirectForm(elements, data);
+      console.log(`Haman: Filled ${filledCount} fields`);
+
+      // Submit the form (if autoSubmit is enabled)
+      if (data.autoSubmit && elements.submitButton) {
+        console.log('Haman: Submitting form');
+        await clickElement(elements.submitButton);
+        await randomDelay(2000, 3000);
+        return {
+          success: true,
+          showName: getShowNameFromPage(),
+          platform,
+        };
+      }
+
+      return {
+        success: true,
+        showName: getShowNameFromPage(),
+        platform,
+        submitted: false,
+        filledFields: filledCount,
+      };
     }
 
-    // Get form elements
+    // If no "Enter Now" button found, we might already be on the form page
     const elements = findBroadwayDirectElements();
     
     // Fill the form with all fields
