@@ -17,11 +17,27 @@ function randomDelay(min = 300, max = 800) {
  * Fetch the user's public IP address
  * Returns a promise that resolves to the IP address string, or null if unavailable
  */
+let cachedUserIP = null; // Cache IP address for the session
+
 async function fetchUserIP() {
+  // Return cached IP if already fetched
+  if (cachedUserIP) {
+    return cachedUserIP;
+  }
+  
   try {
-    const response = await fetch('https://api.ipify.org?format=json');
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const response = await fetch('https://api.ipify.org?format=json', {
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
     const data = await response.json();
-    return data.ip || null;
+    cachedUserIP = data.ip || null;
+    return cachedUserIP;
   } catch (error) {
     console.log('Haman: Could not fetch IP address', error);
     return null;
@@ -425,8 +441,9 @@ function findBroadwayDirectElements(context = document) {
   );
 
   // IP address input (required by some BroadwayDirect forms)
+  // Use specific selectors to avoid matching zip, shipping, or other fields containing 'ip'
   const ipInput = context.querySelector(
-    'input[name="ip"], input[name="dlslot_ip"], input[id*="ip" i][type="text"], input[id*="ip" i][type="hidden"]'
+    'input[name="ip"], input[name="dlslot_ip"], input[id="ip"], input[id="dlslot_ip"]'
   );
 
   // Terms and conditions checkbox
