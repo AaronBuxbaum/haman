@@ -110,8 +110,10 @@ async function clickEnterNowButton() {
   // First, try to find the specific "Enter Now" link with the enter-lottery-link class
   let enterButton = document.querySelector('a.enter-lottery-link, a.enter-button');
   
-  // Fallback: Look for any button/link with "Enter" text
-  if (!enterButton) {
+  if (enterButton) {
+    console.log('Haman: Found "Enter Now" button with class selector');
+  } else {
+    // Fallback: Look for any button/link with "Enter" text
     const enterButtons = Array.from(document.querySelectorAll('a, button')).filter((el) => {
       const text = el.textContent?.toLowerCase().trim();
       // Match "enter", "enter now", "enter lottery" but exclude "already entered"
@@ -121,16 +123,21 @@ async function clickEnterNowButton() {
     
     // Prefer buttons with btn-primary class (active lotteries)
     enterButton = enterButtons.find(btn => btn.classList.contains('btn-primary')) || enterButtons[0];
+    
+    if (enterButton) {
+      console.log('Haman: Found "Enter Now" button with text matching (fallback)');
+    }
   }
 
   if (enterButton) {
-    console.log('Haman: Found "Enter Now" button, clicking...');
+    console.log('Haman: Clicking "Enter Now" button...', enterButton.href || enterButton.textContent);
     await clickElement(enterButton);
     // Wait for modal/form to load
     await randomDelay(1500, 2500);
     return true;
   }
 
+  console.log('Haman: No "Enter Now" button found on page');
   return false;
 }
 
@@ -478,6 +485,12 @@ async function fillLotteryForm(data) {
       
       // Get form elements (within modal if it exists)
       const elements = findBroadwayDirectElements(searchContext);
+      
+      // Log which elements were found
+      const foundElements = Object.entries(elements)
+        .filter(([, value]) => value !== null)
+        .map(([key]) => key);
+      console.log(`Haman: Found ${foundElements.length} form elements:`, foundElements.join(', '));
       
       // Fill the form with all fields
       const filledCount = await fillBroadwayDirectForm(elements, data);
