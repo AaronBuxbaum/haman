@@ -1,21 +1,19 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { chromium, Browser } from 'playwright';
-import { Show } from '../../src/types';
 import { ScraperFactory } from '../../src/scrapers';
+import { getCachedShows, setCachedShows } from '../../src/kvStorage';
 
 /**
  * API endpoint for scraping Broadway show catalogs
  * This scrapes all registered platforms to get current lottery offerings
  * GET /api/scrape-shows?refresh=true
+ * 
+ * Shows are cached in the database (Vercel KV) and updated:
+ * - On demand via ?refresh=true
+ * - Automatically via daily cron job at 8:00 AM EST
  */
 
-/**
- * In-memory cache for scraped shows
- * In production, this could be Redis, DynamoDB, or another persistent cache
- */
-let cachedShows: Show[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours (matches daily cron schedule)
 
 export default async function handler(
   req: NextApiRequest,
@@ -29,18 +27,21 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check if we can use cached data
+  // Check if we can use cached data from database
   const forceRefresh = req.query.refresh === 'true';
   const now = Date.now();
   
-  if (!forceRefresh && cachedShows && (now - cacheTimestamp) < CACHE_DURATION_MS) {
-    console.log('Returning cached show data');
-    return res.status(200).json({
-      shows: cachedShows,
-      cached: true,
-      cacheAge: Math.floor((now - cacheTimestamp) / 1000),
-      totalShows: cachedShows.length
-    });
+  if (!forceRefresh) {
+    const cached = await getCachedShows();
+    if (cached && (now - cached.timestamp) < CACHE_DURATION_MS) {
+      console.log('Returning database-cached show data');
+      return res.status(200).json({
+        shows: cached.shows,
+        cached: true,
+        cacheAge: Math.floor((now - cached.timestamp) / 1000),
+        totalShows: cached.shows.length
+      });
+    }
   }
 
   let browser: Browser | null = null;
@@ -69,9 +70,12 @@ export default async function handler(
     // Use ScraperFactory to scrape all platforms
     const allShows = await ScraperFactory.scrapeAll(browser, 3000);
 
-    // Update cache
-    cachedShows = allShows;
-    cacheTimestamp = now;
+    if (allShows.length === 0) {
+      throw new Error('No shows were scraped from any platform');
+    }
+
+    // Update database cache
+    await setCachedShows(allShows);
 
     console.log(`Successfully scraped ${allShows.length} total shows`);
 
@@ -89,20 +93,23 @@ export default async function handler(
   } catch (error) {
     console.error('Error in show scraping:', error);
     
-    // Return cached data if available, even if expired
-    if (cachedShows && cachedShows.length > 0) {
-      console.log('Returning stale cached data due to error');
+    // Return stale cached data if available as a fallback
+    const cached = await getCachedShows();
+    if (cached && cached.shows.length > 0) {
+      console.log('Returning stale database-cached data due to scraping error');
       return res.status(200).json({
-        shows: cachedShows,
+        shows: cached.shows,
         cached: true,
         stale: true,
         error: error instanceof Error ? error.message : 'Unknown error',
-        totalShows: cachedShows.length
+        totalShows: cached.shows.length,
+        cacheAge: Math.floor((now - cached.timestamp) / 1000)
       });
     }
     
+    // No cache available - return error
     return res.status(500).json({
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'Failed to scrape shows and no cache available',
       shows: []
     });
   } finally {

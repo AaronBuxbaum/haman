@@ -3,5 +3,15 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/apply-lotteries-cron",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/refresh-shows-cron",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

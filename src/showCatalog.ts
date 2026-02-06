@@ -1,108 +1,43 @@
 import { Show } from './types';
+import { getCachedShows } from './kvStorage';
 
 /**
- * Fallback Broadway show catalog (used when scraping is unavailable)
+ * Broadway show catalog with database caching
+ * 
+ * IMPORTANT: No fallback shows - if scraping fails and no cache exists, 
+ * an error will be returned to the user.
+ * 
+ * Shows are cached in the database (Vercel KV) and updated:
+ * - On demand via /api/refresh-shows
+ * - Automatically via daily cron job at /api/refresh-shows-cron (8:00 AM EST)
  * 
  * EXTENSIBILITY NOTES:
  * - Additional lottery platforms can be added by extending the 'platform' type
- * - Dynamic catalog updates are now implemented via the /api/scrape-shows endpoint
+ * - Dynamic catalog updates are implemented via the /api/scrape-shows endpoint
  * - New automation classes should be created in lotteryAutomation.ts for each platform
- * 
- * This fallback catalog is used when:
- * - The scraper API is unavailable
- * - Running in local development without the API
- * - As a safety net during API failures
  */
-const FALLBACK_SHOWS: Show[] = [
-  // LuckySeat (SocialToaster) shows - known active lotteries as of 2026
-  {
-    name: 'Hadestown',
-    platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/shows/hadestown-newyork',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'Moulin Rouge! The Musical',
-    platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/shows/moulinrouge!themusical-newyork',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'The Book of Mormon',
-    platform: 'socialtoaster',
-    url: 'https://www.luckyseat.com/shows/thebookofmormon-newyork',
-    genre: 'musical',
-    active: true
-  },
-  // BroadwayDirect shows - known active lotteries as of 2026
-  {
-    name: 'Aladdin',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/aladdin/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'Wicked',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/wicked/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'The Lion King',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/the-lion-king/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'MJ',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/mj/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'Six',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/six/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'Death Becomes Her',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/death-becomes-her/',
-    genre: 'musical',
-    active: true
-  },
-  {
-    name: 'Stranger Things: The First Shadow',
-    platform: 'broadwaydirect',
-    url: 'https://lottery.broadwaydirect.com/show/st-nyc/',
-    genre: 'play',
-    active: true
-  }
-];
 
-/**
- * In-memory cache for scraped shows
- */
-let cachedShows: Show[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours (matches daily cron schedule)
 
 /**
  * Fetch shows from the scraper API
  * @param forceRefresh - Force a refresh of the data, bypassing cache
  * @returns Promise resolving to array of shows
+ * @throws Error if API fails and no cache is available
  */
 async function fetchShowsFromAPI(forceRefresh: boolean = false): Promise<Show[]> {
   try {
-    // Determine the base URL for the API
+    // First, try to get from database cache
+    if (!forceRefresh) {
+      const cached = await getCachedShows();
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < CACHE_DURATION_MS) {
+        console.log(`Returning database-cached shows (${cached.shows.length} shows, age: ${Math.floor((now - cached.timestamp) / 1000)}s)`);
+        return cached.shows;
+      }
+    }
+
+    // Cache is stale or forceRefresh requested - fetch from API
     const baseUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}` 
       : process.env.API_BASE_URL || 'http://localhost:3000';
@@ -124,62 +59,57 @@ async function fetchShowsFromAPI(forceRefresh: boolean = false): Promise<Show[]>
       throw new Error(`API returned ${response.status}: ${response.statusText}`);
     }
 
-    const data = await response.json() as { shows?: Show[]; [key: string]: unknown };
+    const data = await response.json() as { shows?: Show[]; error?: string; [key: string]: unknown };
     
+    if (data.error) {
+      throw new Error(data.error);
+    }
+
     if (data.shows && Array.isArray(data.shows) && data.shows.length > 0) {
       console.log(`Successfully fetched ${data.shows.length} shows from API`);
       return data.shows;
     } else {
-      console.warn('API returned empty or invalid show data');
-      return FALLBACK_SHOWS;
+      throw new Error('API returned empty or invalid show data');
     }
   } catch (error) {
     console.error('Error fetching shows from API:', error);
-    console.log('Falling back to hard-coded show catalog');
-    return FALLBACK_SHOWS;
+    
+    // Try to return stale cache as last resort
+    const cached = await getCachedShows();
+    if (cached && cached.shows.length > 0) {
+      const age = Math.floor((Date.now() - cached.timestamp) / 1000);
+      console.warn(`Returning stale cached shows (${cached.shows.length} shows, age: ${age}s) due to API error`);
+      return cached.shows;
+    }
+    
+    // No cache available - throw error
+    throw new Error('Failed to fetch shows: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }
 
 /**
- * Get all Broadway shows (from API or fallback)
- * Uses caching to minimize API calls
+ * Get all Broadway shows (from database cache or API)
+ * Uses database caching to minimize API calls
+ * @throws Error if no shows are available
  */
 export async function getBroadwayShows(forceRefresh: boolean = false): Promise<Show[]> {
-  const now = Date.now();
-  
-  // Return cached data if available and not expired
-  if (!forceRefresh && cachedShows && (now - cacheTimestamp) < CACHE_DURATION_MS) {
-    console.log('Returning cached show data');
-    return cachedShows;
-  }
-
-  // Fetch fresh data
-  const shows = await fetchShowsFromAPI(forceRefresh);
-  
-  // Update cache
-  cachedShows = shows;
-  cacheTimestamp = now;
-  
-  return shows;
+  return await fetchShowsFromAPI(forceRefresh);
 }
 
 /**
- * Synchronous version that returns cached or fallback data
- * Use this when you need immediate access and can't await
+ * Get cached shows from database only (does not trigger API fetch)
+ * @throws Error if no cache is available
+ * Use this when you need immediate access to shows without triggering a scrape.
+ * Prefer getBroadwayShows() whenever possible to ensure fresh data.
  */
-export function getBroadwayShowsSync(): Show[] {
-  if (cachedShows) {
-    return cachedShows;
+export async function getBroadwayShowsFromCache(): Promise<Show[]> {
+  const cached = await getCachedShows();
+  if (cached && cached.shows.length > 0) {
+    return cached.shows;
   }
-  return FALLBACK_SHOWS;
+  throw new Error('No cached shows available. Please call /api/refresh-shows to fetch shows.');
 }
 
-/**
- * Legacy export for backwards compatibility
- * @deprecated Use getBroadwayShows() or getBroadwayShowsSync() instead.
- * This export will be removed in v2.0.0. Please migrate to the new async API.
- */
-export const BROADWAY_SHOWS = FALLBACK_SHOWS;
 
 /**
  * Get all active shows
@@ -190,10 +120,11 @@ export async function getActiveShows(): Promise<Show[]> {
 }
 
 /**
- * Get all active shows (synchronous version)
+ * Get all active shows (from cache only)
+ * @throws Error if no cache is available
  */
-export function getActiveShowsSync(): Show[] {
-  const shows = getBroadwayShowsSync();
+export async function getActiveShowsFromCache(): Promise<Show[]> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.filter(show => show.active);
 }
 
@@ -206,10 +137,11 @@ export async function getShowsByPlatform(platform: 'socialtoaster' | 'broadwaydi
 }
 
 /**
- * Get shows by platform (synchronous version)
+ * Get shows by platform (from cache only)
+ * @throws Error if no cache is available
  */
-export function getShowsByPlatformSync(platform: 'socialtoaster' | 'broadwaydirect'): Show[] {
-  const shows = getBroadwayShowsSync();
+export async function getShowsByPlatformFromCache(platform: 'socialtoaster' | 'broadwaydirect'): Promise<Show[]> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.filter(show => show.active && show.platform === platform);
 }
 
@@ -224,10 +156,11 @@ export async function getShowByName(name: string): Promise<Show | undefined> {
 }
 
 /**
- * Get show by name (synchronous version)
+ * Get show by name (from cache only)
+ * @throws Error if no cache is available
  */
-export function getShowByNameSync(name: string): Show | undefined {
-  const shows = getBroadwayShowsSync();
+export async function getShowByNameFromCache(name: string): Promise<Show | undefined> {
+  const shows = await getBroadwayShowsFromCache();
   return shows.find(
     show => show.name.toLowerCase() === name.toLowerCase() && show.active
   );
