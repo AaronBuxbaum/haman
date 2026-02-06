@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haman - Broadway Lottery</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🎭 Haman</h1>
+      <p class="subtitle">Broadway Lottery Automation</p>
+    </header>
+
+    <div id="loading" class="loading">
+      Loading shows...
+    </div>
+
+    <div id="content" class="content hidden">
+      <!-- Quick Actions -->
+      <div class="quick-actions">
+        <button id="refreshBtn" class="btn btn-secondary" title="Refresh show list">
+          🔄 Refresh
+        </button>
+        <button id="settingsBtn" class="btn btn-secondary" title="Open settings">
+          ⚙️ Settings
+        </button>
+      </div>
+
+      <!-- Preferences Section -->
+      <div class="section preferences-section">
+        <label for="preferences">Your Preferences:</label>
+        <textarea
+          id="preferences"
+          placeholder="e.g., I love musicals, especially Hamilton and Wicked..."
+          rows="3"
+        ></textarea>
+        <button id="parseBtn" class="btn btn-primary">
+          🤖 Parse Preferences
+        </button>
+        <p id="noApiKeyWarning" class="warning hidden">
+          ⚠️ Add your OpenAI API key in Settings to enable AI preference matching
+        </p>
+      </div>
+
+      <!-- Message display -->
+      <div id="message" class="message hidden"></div>
+
+      <!-- Shows List -->
+      <div class="section">
+        <h2>Shows (<span id="showCount">0</span>)</h2>
+        <div id="showsList" class="shows-list">
+          <!-- Shows will be inserted here -->
+        </div>
+      </div>
+
+      <!-- History Link -->
+      <div class="footer-links">
+        <a href="#" id="viewHistoryLink">View Lottery History</a>
+      </div>
+    </div>
+
+    <!-- History View -->
+    <div id="historyView" class="history-view hidden">
+      <button id="backToShowsBtn" class="btn btn-secondary back-btn">
+        ← Back to Shows
+      </button>
+      <h2>Lottery History</h2>
+      <div id="historyList" class="history-list">
+        <!-- History items will be inserted here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

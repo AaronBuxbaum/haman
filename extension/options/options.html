@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Haman Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>🎭 Haman Settings</h1>
+      <p class="subtitle">Configure your Broadway lottery automation</p>
+    </header>
+
+    <div id="message" class="message hidden"></div>
+
+    <form id="settingsForm">
+      <!-- API Configuration -->
+      <section class="section">
+        <h2>🔑 API Configuration</h2>
+        <div class="form-group">
+          <label for="openaiApiKey">OpenAI API Key</label>
+          <input
+            type="password"
+            id="openaiApiKey"
+            placeholder="sk-..."
+          >
+          <p class="help-text">
+            Required for AI-powered preference parsing. Get your key from
+            <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI</a>.
+          </p>
+        </div>
+      </section>
+
+      <!-- User Information -->
+      <section class="section">
+        <h2>👤 Default User Information</h2>
+        <p class="section-description">
+          This information will be used to fill lottery forms automatically.
+        </p>
+        <div class="form-group">
+          <label for="defaultEmail">Email Address</label>
+          <input
+            type="email"
+            id="defaultEmail"
+            placeholder="your.email@example.com"
+          >
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="defaultFirstName">First Name</label>
+            <input
+              type="text"
+              id="defaultFirstName"
+              placeholder="John"
+            >
+          </div>
+          <div class="form-group">
+            <label for="defaultLastName">Last Name</label>
+            <input
+              type="text"
+              id="defaultLastName"
+              placeholder="Doe"
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Auto-Apply Settings -->
+      <section class="section">
+        <h2>⏰ Automatic Application</h2>
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="autoApplyEnabled">
+            <span>Enable automatic lottery application</span>
+          </label>
+          <p class="help-text">
+            When enabled, the extension will automatically apply to enabled lotteries at the scheduled time.
+          </p>
+        </div>
+        <div class="form-group">
+          <label for="autoApplyTime">Daily Application Time</label>
+          <input
+            type="time"
+            id="autoApplyTime"
+            value="09:00"
+          >
+          <p class="help-text">
+            Time when automatic applications will be submitted. Broadway lotteries typically open in the morning.
+          </p>
+        </div>
+      </section>
+
+      <!-- Credentials Management -->
+      <section class="section">
+        <h2>🔐 Platform Credentials</h2>
+        <p class="section-description">
+          Store login credentials for lottery platforms. Passwords are stored locally in your browser.
+        </p>
+
+        <div id="credentialsList" class="credentials-list">
+          <!-- Credentials will be inserted here -->
+        </div>
+
+        <button type="button" id="addCredentialBtn" class="btn btn-secondary">
+          + Add Credential
+        </button>
+
+        <div id="addCredentialForm" class="add-credential-form hidden">
+          <div class="form-group">
+            <label for="newPlatform">Platform</label>
+            <select id="newPlatform">
+              <option value="socialtoaster">SocialToaster / LuckySeat</option>
+              <option value="broadwaydirect">BroadwayDirect</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="newEmail">Email</label>
+            <input type="email" id="newEmail" placeholder="email@example.com">
+          </div>
+          <div class="form-group">
+            <label for="newPassword">Password</label>
+            <input type="password" id="newPassword" placeholder="Password">
+          </div>
+          <div class="form-actions">
+            <button type="button" id="saveCredentialBtn" class="btn btn-primary">Save</button>
+            <button type="button" id="cancelCredentialBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Save Button -->
+      <div class="form-actions main-actions">
+        <button type="submit" class="btn btn-primary btn-large">
+          💾 Save Settings
+        </button>
+      </div>
+    </form>
+
+    <!-- Data Management -->
+    <section class="section danger-zone">
+      <h2>⚠️ Data Management</h2>
+      <div class="form-actions">
+        <button type="button" id="clearHistoryBtn" class="btn btn-danger">
+          Clear Lottery History
+        </button>
+        <button type="button" id="exportDataBtn" class="btn btn-secondary">
+          Export All Data
+        </button>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>Haman v1.0.0 | <a href="https://github.com/AaronBuxbaum/haman" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

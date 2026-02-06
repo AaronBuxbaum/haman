@@ -1,278 +1,170 @@
 # Quick Start Guide
 
-This guide will help you get started with the Broadway Lottery Automation system in under 5 minutes.
+Get up and running with Haman in under 5 minutes!
 
 ## Prerequisites
 
-- Node.js 18 or higher
-- npm
-- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
-- AWS account (for deployment only)
+- Google Chrome browser (version 88 or later)
+- Node.js 18+ (for building from source)
+- OpenAI API key (optional, for AI preference matching)
 
 ## Installation
 
-1. **Clone the repository**
+### 1. Clone and Build
+
 ```bash
+# Clone the repository
 git clone https://github.com/AaronBuxbaum/haman.git
 cd haman
-```
 
-2. **Install dependencies**
-```bash
+# Install dependencies
 npm install
-```
 
-3. **Set up environment variables**
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and add your OpenAI API key:
-```
-OPENAI_API_KEY=sk-your-actual-api-key-here
-```
-
-4. **Build the project**
-```bash
+# Build the extension
 npm run build
 ```
 
-## Local Testing
+### 2. Load in Chrome
 
-Run the example script to see the system in action:
+1. Open Chrome and go to `chrome://extensions/`
+2. Enable **Developer mode** (toggle in top right)
+3. Click **Load unpacked**
+4. Select the `extension/dist` directory
 
-```bash
-npm run dev
-```
+You should see the Haman icon (🎭) in your browser toolbar!
 
-This will:
-1. Create an example user with preferences: "I love musicals, especially Hamilton and Wicked"
-2. Parse preferences using GPT-4
-3. Find matching shows from the catalog
-4. (In simulation mode) Apply to matching lotteries
+## First-Time Setup
 
-Expected output:
-```
-Creating example user...
-User created: { id: 'user_...', email: 'user@example.com', ... }
-Parsed preferences: { genres: ['musical'], showNames: ['Hamilton', 'Wicked'] }
+### Step 1: Open Settings
 
-Matching shows: ['Hamilton', 'Wicked', 'The Lion King', 'Book of Mormon', 'Chicago', 'Moulin Rouge']
+1. Click the Haman icon in your browser toolbar
+2. Click the **⚙️ Settings** button
 
-Applying to lotteries...
-Applying to Hamilton lottery on SocialToaster...
-Successfully applied to Hamilton on SocialToaster
-...
-```
+### Step 2: Add Your Information
 
-## Creating Your First User
+Fill in your details:
+- **Email Address**: Your email for lottery entries
+- **First Name**: Your first name
+- **Last Name**: Your last name
 
-Edit `src/index.ts` to customize the example:
+### Step 3: (Optional) Add OpenAI API Key
 
-```typescript
-const user = await service.createUser(
-  'your-email@example.com',
-  'I want to see Hamilton and Wicked, but not The Lion King',
-  'Your First Name',  // Optional
-  'Your Last Name'    // Optional
-);
-```
+If you want AI-powered preference matching:
+1. Get an API key from [OpenAI](https://platform.openai.com/api-keys)
+2. Paste it in the **OpenAI API Key** field
+3. Save settings
 
-### Preference Examples
+### Step 4: Save Settings
 
-The AI can understand natural language preferences:
+Click **💾 Save Settings**
 
-**Simple preferences:**
-```
-"I love musicals"
-"I want to see Hamilton"
-```
+## Basic Usage
 
-**Genre-based:**
-```
-"I'm interested in musicals and dramas"
-"Comedy shows only"
-```
+### View Available Shows
 
-**With exclusions:**
-```
-"Any show except The Lion King"
-"All musicals but not comedies"
-```
+1. Click the Haman icon in your toolbar
+2. See all available Broadway lottery shows
+3. Each show displays its platform and status
 
-**With dates:**
-```
-"Shows in January and February"
-"Available next month"
-```
+### Enable/Disable Shows
 
-**With price constraints:**
-```
-"Tickets under $50"
-"Price range $30-$75"
-```
+- Click the **✓** or **✗** button next to any show
+- Green = will apply, Red = won't apply
+- Your choices are saved automatically
 
-## Deployment to AWS Lambda
+### Apply to a Lottery
 
-### Setup AWS Credentials
+**Method 1: Quick Apply from Popup**
+1. Click the **🎯** button next to any show
+2. A new tab opens with the lottery page
+3. Click the **🎭 Haman** button on the page
+4. Review the filled form and click submit
 
-Configure AWS CLI with your credentials:
-```bash
-aws configure
-```
+**Method 2: Manual Navigation**
+1. Go to any supported lottery page
+2. Look for the **🎭 Haman** button in the bottom right
+3. Click it to auto-fill the form
+4. Review and submit
 
-### Deploy
+## Using AI Preferences
 
-```bash
-npm run deploy
-```
+If you've added an OpenAI API key:
 
-This will:
-1. Build the TypeScript code
-2. Package the application
-3. Create Lambda function
-4. Set up CloudWatch Events for scheduling
-5. Configure IAM roles and permissions
+1. Open the popup and type your preferences:
+   > "I love musicals, especially Hamilton and Wicked. No dramas please."
 
-### Schedule Configuration
+2. Click **🤖 Parse Preferences**
 
-The system runs twice daily by default:
-- **9:00 AM EST** (14:00 UTC) - Primary run
-- **11:00 AM EST** (16:00 UTC) - Backup run
+3. Shows will automatically be enabled/disabled based on your preferences
 
-Edit `serverless.yml` to customize:
+4. You can still manually override any show
 
-```yaml
-events:
-  - schedule:
-      rate: cron(0 14 * * ? *)  # Daily at 9 AM EST
-```
+## Setting Up Auto-Apply
 
-### View Logs
+Want Haman to automatically apply to lotteries?
 
-```bash
-serverless logs -f applyLotteries
-```
+1. Open **Settings**
+2. Check **Enable automatic lottery application**
+3. Set your preferred time (e.g., 9:00 AM)
+4. Save settings
 
-### Invoke Manually
+Haman will automatically:
+- Open lottery pages for enabled shows
+- Fill in your information
+- Submit the forms
 
-```bash
-serverless invoke -f applyLotteries
-```
+> ⚠️ **Note**: Auto-apply works best when your computer is on and Chrome is running.
 
-## Understanding the Show Catalog
+## Tips & Tricks
 
-The system includes a catalog of Broadway shows in `src/showCatalog.ts`:
+### Check Your Lottery History
 
-```typescript
-{
-  name: 'Hamilton',
-  platform: 'socialtoaster',
-  url: 'https://www.luckyseat.com/hamilton',
-  genre: 'musical',
-  active: true
-}
-```
+1. Open the popup
+2. Click **View Lottery History** at the bottom
+3. See past application attempts and results
 
-### Adding New Shows
+### Export Your Data
 
-Edit `src/showCatalog.ts` and add shows to the `BROADWAY_SHOWS` array:
+1. Go to Settings
+2. Click **Export All Data**
+3. Save the JSON file for backup
 
-```typescript
-{
-  name: 'Your Show Name',
-  platform: 'socialtoaster', // or 'broadwaydirect'
-  url: 'https://lottery-url.com/your-show',
-  genre: 'musical', // or 'drama', 'comedy', etc.
-  active: true
-}
-```
+### Multiple Shows Same Platform
 
-**Note**: The URLs in the default catalog are examples. You'll need to update them with actual lottery URLs.
-
-## Production Considerations
-
-### Database
-
-The current implementation uses in-memory storage. For production:
-
-1. **Migrate to DynamoDB**
-   - Create a DynamoDB table
-   - Update `src/database.ts` to use AWS SDK
-   - Add encryption at rest
-
-2. **Or use PostgreSQL RDS**
-   - Set up RDS instance
-   - Install pg driver: `npm install pg`
-   - Update database implementation
-
-### User Management
-
-For production, implement:
-- User authentication (OAuth, JWT)
-- Email verification
-- User dashboard/web interface
-- Preference editing UI
-
-### Monitoring
-
-Set up:
-- CloudWatch Alarms for failures
-- Email notifications for results
-- Success/failure tracking
-- Cost monitoring
-
-### Rate Limiting
-
-Implement:
-- Per-user application limits
-- Platform-specific rate limits
-- Exponential backoff on failures
+You can add multiple credentials for the same platform in Settings to enter the same lottery with different email addresses.
 
 ## Troubleshooting
 
-### "Cannot find module" errors
-```bash
-npm install
-npm run build
-```
+### Button Not Appearing on Lottery Pages
 
-### "OPENAI_API_KEY not found"
-Make sure `.env` file exists and contains your API key.
+- Make sure you're on a supported page (BroadwayDirect or LuckySeat)
+- Refresh the page
+- Check that the extension is enabled in `chrome://extensions/`
 
-### Build errors
-```bash
-rm -rf node_modules package-lock.json
-npm install
-npm run build
-```
+### Form Not Filling
 
-### Lambda deployment fails
-- Check AWS credentials: `aws sts get-caller-identity`
-- Verify sufficient IAM permissions
-- Check Lambda limits in your region
+- Open Settings and verify your email/name are saved
+- Check the browser console for error messages
+- Make sure you're clicking the Haman button, not the site's button
+
+### AI Preferences Not Working
+
+- Verify your OpenAI API key is correct (starts with `sk-`)
+- Check that you have API credits available
+- Look for error messages in the popup
+
+### Extension Not Loading
+
+- Go to `chrome://extensions/`
+- Make sure Developer mode is enabled
+- Try clicking the refresh button on the extension
+- Rebuild with `npm run build` if needed
 
 ## Next Steps
 
-1. **Update Show URLs**: Replace example URLs with actual lottery URLs
-2. **Test with Real Lotteries**: Try a real lottery application (carefully!)
-3. **Add More Shows**: Expand the show catalog
-4. **Set Up Database**: Migrate from in-memory to DynamoDB
-5. **Build Web Interface**: Create user signup/management UI
+- Explore all the shows in the catalog
+- Set up your preferences to automatically match shows
+- Configure auto-apply for hands-off lottery entries
+- Check your lottery history to track applications
 
-## Getting Help
-
-- **Documentation**: See `README.md` and `ARCHITECTURE.md`
-- **Security**: See `SECURITY.md`
-- **Issues**: Open an issue on GitHub
-- **Community**: Join discussions on GitHub
-
-## Legal Notice
-
-This tool is for educational purposes. Ensure compliance with:
-- Broadway lottery terms of service
-- Rate limiting policies
-- Data protection regulations (GDPR, etc.)
-- Applicable laws in your jurisdiction
-
-Always respect the rules and guidelines of lottery platforms.
+Happy lottery hunting! 🎭

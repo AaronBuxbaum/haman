@@ -1,35 +1,35 @@
 # Haman - Broadway Lottery Automation
 
-An automated Broadway show lottery application system with a modern web UI that uses AI to parse user preferences and Playwright to apply to lotteries.
+A Chrome browser extension that automatically applies to Broadway show lotteries with AI-powered preference matching. The extension runs directly in your browser, automating lottery entries on platforms like BroadwayDirect and LuckySeat.
 
 ## Features
 
-- **🎭 Web Dashboard**: Modern Next.js UI for managing shows and preferences
-- **🤖 AI-Powered Parsing**: Uses OpenAI GPT-4 to parse user preferences into structured data
+- **🎭 Browser Extension**: Runs in your own Chrome browser - no serverless functions needed
+- **🤖 AI-Powered Parsing**: Uses OpenAI GPT-4 to parse your show preferences
 - **✅ Manual Overrides**: Toggle individual shows on/off, overriding AI preferences
-- **🔐 Credential Management**: Securely store multiple platform login credentials
-- **🎯 Automated Applications**: Uses Playwright to automatically apply to Broadway show lotteries
-- **🌐 Multi-Platform Support**: Supports both SocialToaster and BroadwayDirect lottery platforms
-- **☁️ Serverless Architecture**: Deployed on Vercel with edge functions
-- **💾 Persistent Storage**: Uses Vercel KV (Redis) for user data and overrides
+- **🔐 Credential Management**: Securely store platform login credentials locally
+- **🎯 One-Click Application**: Click the Haman button on any lottery page to auto-fill forms
+- **⏰ Scheduled Applications**: Optionally set up automatic daily lottery applications
+- **💾 Local Storage**: All data stored securely in your browser
 
 ## Screenshots
 
-### Dashboard
-![Dashboard](https://github.com/user-attachments/assets/6d5c9945-f929-4f61-b1c8-9bff204ddc9d)
+### Popup Dashboard
+The extension popup shows all available Broadway shows with their lottery status:
+- Green checkmark: Enabled for lottery application
+- Red cross: Disabled
+- Click to toggle any show on/off
 
-### Credentials Management
-![Credentials](https://github.com/user-attachments/assets/5190c2ee-3641-4754-a533-0a993c35e7bd)
+### Settings Page
+Configure your:
+- OpenAI API key for AI preference parsing
+- Default user information (email, name) for lottery forms
+- Automatic application schedule
+- Platform credentials
 
-## Setup
+## Installation
 
-### Prerequisites
-
-- Node.js 18+ and npm
-- Vercel account (for deployment)
-- OpenAI API key (optional - system works without it)
-
-### Installation
+### From Source (Developer Mode)
 
 1. Clone the repository:
 ```bash
@@ -42,262 +42,186 @@ cd haman
 npm install
 ```
 
-3. Create a `.env` file with your OpenAI API key (optional):
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-4. Run the development server:
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Usage
-
-### Web Interface
-
-1. **Set User ID**: Enter your user ID (e.g., `demo-user-1`)
-2. **Enter Preferences**: Describe your show preferences in natural language
-   - Example: "I love musicals, especially Hamilton and Wicked"
-3. **Parse Preferences**: Click "🤖 Parse Preferences" to use OpenAI (if configured)
-4. **Override Shows**: Manually enable/disable specific shows using toggle buttons
-5. **Manage Credentials**: Click "🔑 Manage Platform Credentials" to add login accounts
-6. **Apply to Lotteries**: Click "🎭 Apply to Lotteries" to submit applications
-
-### Without OpenAI API Key
-
-The system works without an OpenAI API key:
-- All shows are disabled by default
-- Use manual overrides to enable specific shows
-- This is useful for testing or if you want full manual control
-
-### Deployment to Vercel
-
-1. Install Vercel CLI:
-```bash
-npm install -g vercel
-```
-
-2. Deploy to Vercel:
-```bash
-npm run deploy
-```
-
-3. Set environment variables in Vercel dashboard:
-```bash
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-4. (Optional) Set up Vercel KV for persistent storage:
-   - Go to your project in Vercel dashboard
-   - Navigate to Storage → Create Database → KV
-   - Environment variables will be automatically configured
-
-#### Vercel Deployment
-
-This project can also be deployed to Vercel with automatic deployments via GitHub Actions.
-
-##### Prerequisites
-1. Create a Vercel account at [vercel.com](https://vercel.com)
-2. Install Vercel CLI: `npm install -g vercel`
-3. Link your project: `vercel link`
-4. Get your project details:
-   - `VERCEL_ORG_ID`: Found in `.vercel/project.json` after linking
-   - `VERCEL_PROJECT_ID`: Found in `.vercel/project.json` after linking
-   - `VERCEL_TOKEN`: Create at [vercel.com/account/tokens](https://vercel.com/account/tokens)
-
-##### GitHub Secrets Setup
-Add the following secrets to your GitHub repository settings:
-- `VERCEL_TOKEN`: Your Vercel authentication token
-- `VERCEL_ORG_ID`: Your Vercel organization ID
-- `VERCEL_PROJECT_ID`: Your Vercel project ID
-- `OPENAI_API_KEY`: Your OpenAI API key
-
-##### Environment Variables in Vercel
-Set these environment variables in your Vercel project settings:
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `CRON_SECRET`: A secure random string for protecting the cron endpoint
-
-The deployment workflow will automatically deploy:
-- Preview deployments for pull requests
-- Production deployments when merging to main
-
-The Vercel deployment includes scheduled cron jobs that run:
-- Daily at 9 AM EST (14:00 UTC)
-- Daily at 11 AM EST (16:00 UTC)
-
-## Architecture
-
-### Frontend Components
-
-1. **Dashboard Page** (`pages/index.tsx`)
-   - Main interface showing all available shows
-   - Preference input and parsing
-   - Manual override toggles
-   - Action buttons (refresh, parse, apply)
-
-2. **Credentials Page** (`pages/credentials.tsx`)
-   - Manage platform login credentials
-   - Support multiple accounts per platform
-   - Encrypted password storage
-
-### Backend API Routes
-
-1. **`/api/shows`** - Get all shows with preference matching
-2. **`/api/override`** - Save user overrides for shows
-3. **`/api/parse-preferences`** - Parse user preferences with OpenAI
-4. **`/api/apply-lotteries`** - Apply to all desired shows
-5. **`/api/credentials`** - Manage platform credentials
-6. **`/api/refresh-shows`** - Refresh show catalog
-
-### Backend Services
-
-1. **User Database** (`src/database.ts`)
-   - Manages user accounts and preferences
-   - In-memory storage with Vercel KV support
-
-2. **Preference Parser** (`src/preferenceParser.ts`)
-   - Uses OpenAI GPT-4 to parse free-text preferences
-   - Extracts: genres, show names, price ranges, date ranges, exclusions
-
-3. **Lottery Automation** (`src/lotteryAutomation.ts`)
-   - Playwright-based automation for lottery applications
-   - Supports SocialToaster and BroadwayDirect platforms
-   - Uses serverless-optimized Chromium for Vercel deployment
-   - See `SERVERLESS_PLAYWRIGHT.md` for technical details
-
-4. **Show Catalog** (`src/showCatalog.ts`)
-   - Catalog of available Broadway shows and their lottery URLs
-   - Can be dynamically updated in production
-
-5. **Lottery Service** (`src/lotteryService.ts`)
-   - Main orchestration service
-   - Matches users with shows and applies to lotteries
-
-6. **KV Storage** (`src/kvStorage.ts`)
-   - Vercel KV integration for user overrides and credentials
-   - Falls back to in-memory storage for local development
-
-## User Preference Examples
-
-Users can describe their preferences in natural language:
-
-```
-"I love musicals, especially Hamilton and Wicked. I want to see any musical on Broadway."
-```
-
-```
-"I'm interested in dramas and comedies, but not musicals. Price range up to $50."
-```
-
-```
-"Apply to all shows except The Lion King. I prefer shows in January and February."
-```
-
-The AI parser will extract:
-- **Genres**: musical, drama, comedy
-- **Show Names**: Hamilton, Wicked, The Lion King
-- **Price Ranges**: max $50
-- **Date Ranges**: January-February
-- **Exclusions**: Shows to avoid
-
-## Show Catalog
-
-The system dynamically scrapes Broadway show catalogs from lottery platforms using Vercel serverless functions:
-
-### Dynamic Scraping
-- **API Endpoint**: `/api/scrape-shows` scrapes current shows from LuckySeat and BroadwayDirect
-- **Caching**: Results cached for 1 hour to minimize requests and avoid blocking
-- **Anti-Detection**: Implements browser fingerprinting, user agent rotation, random delays
-- **Request Interspersing**: 3-5 second delays between platforms to avoid detection
-- **Fallback**: Uses known current shows if scraping fails
-
-### Show Data
-Each show includes:
-- Show name
-- Platform (socialtoaster or broadwaydirect)
-- Lottery URL
-- Genre
-- Active status
-
-### Manual Refresh
-To force a refresh of the show catalog, call the API with `?refresh=true`:
-```bash
-curl https://your-vercel-app.vercel.app/api/scrape-shows?refresh=true
-```
-
-The catalog updates automatically every hour when accessed.
-
-## Lottery Platforms
-
-### LuckySeat (SocialToaster)
-- Platform for Broadway lotteries
-- Current shows: Hadestown, Moulin Rouge! The Musical, The Book of Mormon, and more
-- URL: https://www.luckyseat.com/
-
-### BroadwayDirect
-- Major lottery platform
-- Current shows: Aladdin, Wicked, The Lion King, MJ, Six, Death Becomes Her, Stranger Things: The First Shadow, and more
-- URL: https://lottery.broadwaydirect.com/
-
-## Environment Variables
-
-- `OPENAI_API_KEY`: Your OpenAI API key (optional - system works without it)
-- `NODE_ENV`: Environment (production/development)
-- `KV_URL`: Vercel KV connection URL (auto-configured when using Vercel KV)
-- `KV_REST_API_URL`: Vercel KV REST API URL (auto-configured)
-- `KV_REST_API_TOKEN`: Vercel KV auth token (auto-configured)
-
-## Future Enhancements
-
-- [x] Real database integration (DynamoDB, PostgreSQL) - Ready for implementation
-- [x] User authentication and web interface - Architecture documented  
-- [x] Email notifications for lottery results - Integration points identified
-- [x] Support for additional lottery platforms - Extensible design in place
-- [x] Dynamic show catalog updates - Pattern established
-- [x] User dashboard for managing preferences - Framework ready
-- [ ] Winning tracking and statistics
-- [ ] Mobile app integration
-- [ ] Advanced analytics
-
-## Development
-
-### Build
+3. Build the extension:
 ```bash
 npm run build
 ```
 
-### Lint
+4. Load in Chrome:
+   - Open `chrome://extensions/`
+   - Enable "Developer mode" (top right)
+   - Click "Load unpacked"
+   - Select the `extension/dist` directory
+
+### From Chrome Web Store
+*Coming soon*
+
+## Usage
+
+### Quick Start
+
+1. **Install the extension** (see Installation above)
+2. **Configure settings**: Click the extension icon, then ⚙️ Settings
+   - Add your email and name for lottery forms
+   - (Optional) Add your OpenAI API key for AI preferences
+3. **Set preferences**: In the popup, describe your show preferences
+   - Example: "I love musicals, especially Hamilton and Wicked"
+4. **Enable shows**: Toggle shows on/off as desired
+5. **Apply to lotteries**: 
+   - Visit a lottery page and click the 🎭 Haman button, OR
+   - Click the 🎯 button next to any show in the popup
+
+### On Lottery Pages
+
+When you visit a supported lottery page (BroadwayDirect or LuckySeat), you'll see:
+- A floating 🎭 Haman button in the bottom right
+- Click it to auto-fill the lottery form with your saved information
+- Review the form and click submit
+
+### AI Preference Matching
+
+If you configure an OpenAI API key:
+1. Enter your preferences in natural language
+2. Click "🤖 Parse Preferences"
+3. Shows will automatically be enabled/disabled based on your preferences
+
+Example preferences:
+- "I love musicals, especially Hamilton and Wicked"
+- "I'm interested in dramas and comedies, but not musicals"
+- "Apply to all shows except The Lion King"
+
+### Automatic Applications
+
+Enable scheduled applications in Settings:
+1. Check "Enable automatic lottery application"
+2. Set your preferred time (e.g., 9:00 AM when lotteries open)
+3. The extension will automatically open and fill lottery forms for enabled shows
+
+## Supported Platforms
+
+- **BroadwayDirect** (lottery.broadwaydirect.com)
+  - Aladdin, Wicked, The Lion King, Hamilton, MJ, Six, and more
+- **LuckySeat / SocialToaster** (luckyseat.com)
+  - Hadestown, Moulin Rouge, The Book of Mormon, Chicago, and more
+
+## Privacy & Security
+
+- **Local Storage**: All data (preferences, credentials, history) is stored locally in your browser using Chrome's storage API
+- **No Server**: The extension runs entirely in your browser - no data is sent to external servers (except OpenAI for preference parsing, if configured)
+- **Password Handling**: Platform passwords are base64 encoded for basic obfuscation (not true encryption)
+- **API Key**: Your OpenAI API key is stored locally and only used for preference parsing
+
+## Development
+
+### Project Structure
+
+```
+extension/
+├── manifest.json        # Extension manifest
+├── background/          # Service worker
+│   └── background.ts
+├── content/             # Content scripts for lottery pages
+│   └── content.ts
+├── popup/               # Extension popup UI
+│   ├── popup.html
+│   ├── popup.css
+│   └── popup.ts
+├── options/             # Settings page
+│   ├── options.html
+│   ├── options.css
+│   └── options.ts
+├── lib/                 # Shared utilities
+│   ├── types.ts
+│   ├── storage.ts
+│   ├── preferenceParser.ts
+│   └── showCatalog.ts
+└── icons/               # Extension icons
+```
+
+### Building
+
+```bash
+# Install dependencies
+npm install
+
+# Build extension
+npm run build
+
+# The built extension is in extension/dist/
+```
+
+### Development Workflow
+
+1. Make changes to TypeScript files in `extension/`
+2. Run `npm run build` to compile
+3. In Chrome, go to `chrome://extensions/`
+4. Click the refresh icon on the Haman extension
+5. Test your changes
+
+### Linting
+
 ```bash
 npm run lint
 ```
 
-### Test
-```bash
-npm test
-```
+## Configuration
 
-## GitHub Copilot Configuration
+### Environment Variables
 
-This repository is fully configured with GitHub Copilot instructions and custom agents to help with development:
+None required! The extension stores all configuration locally in your browser.
 
-- **📋 Copilot Instructions**: See `.github/copilot-instructions.md` for comprehensive guidelines on code style, testing, architecture, and project-specific considerations
-- **⚙️ Setup Steps**: See `.github/copilot-setup-steps.yaml` for environment setup, build commands, and development workflow
-- **🤖 Custom Agents**: Specialized agents available in `.github/agents/`:
-  - **General Purpose**: Bug fixes, features, and refactoring
-  - **Documentation**: Maintaining and improving documentation
-  - **Testing**: Creating and maintaining test suites
+### Settings (in extension)
 
-These configurations help GitHub Copilot provide context-aware assistance tailored to this project's needs. Copilot can help you understand the codebase, write tests, fix bugs, and implement features while following project conventions.
+| Setting | Description |
+|---------|-------------|
+| OpenAI API Key | Optional. Enables AI preference parsing |
+| Default Email | Your email for lottery entries |
+| First Name | Your first name for lottery entries |
+| Last Name | Your last name for lottery entries |
+| Auto-Apply | Enable/disable scheduled applications |
+| Apply Time | When to run automatic applications |
 
-For more information on using Copilot with this repository, see the [best practices guide](https://docs.github.com/en/copilot/how-tos/agents/copilot-coding-agent/best-practices-for-using-copilot-to-work-on-tasks).
+## Comparison: Extension vs. Serverless
+
+This project was previously a serverless application. Here's why we moved to a Chrome extension:
+
+| Feature | Chrome Extension | Serverless (Previous) |
+|---------|-----------------|----------------------|
+| Bot Detection | ✅ Runs in real browser | ❌ Easily detected |
+| Privacy | ✅ All data local | ⚠️ Data on server |
+| Cost | ✅ Free | ⚠️ API/hosting costs |
+| Setup | ✅ Just install | ⚠️ Deploy + configure |
+| Reliability | ✅ Your own browser | ⚠️ Server availability |
+
+## Troubleshooting
+
+### Extension not loading
+- Make sure you're in Developer mode in `chrome://extensions/`
+- Check the console for errors (click "background page" link in extension details)
+
+### Form not filling
+- Make sure you've saved your email/name in Settings
+- Check that you're on a supported lottery page
+- Try refreshing the page
+
+### AI parsing not working
+- Verify your OpenAI API key is correct
+- Check that you have API credits available
+- The key should start with `sk-`
+
+## Contributing
+
+Contributions are welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run linting (`npm run lint`)
+5. Submit a pull request
 
 ## License
 
 MIT
 
-## Contributing
+## Legacy (Serverless Version)
 
-Contributions are welcome! Please open an issue or submit a pull request.
+The previous serverless/Next.js version is still available in the repository but is no longer the primary deployment method. Files in `pages/`, `src/`, and `styles/` are from the legacy version.

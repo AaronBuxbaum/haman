@@ -1,19 +1,19 @@
 {
-  "parser": "@typescript-eslint/parser",
+  "env": {
+    "browser": true,
+    "es2020": true,
+    "webextensions": true
+  },
   "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "next/core-web-vitals"
+    "eslint:recommended"
   ],
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module"
   },
-  "ignorePatterns": ["next-env.d.ts"],
   "rules": {
-    "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/ban-ts-comment": "off",
-    "@typescript-eslint/triple-slash-reference": "off"
-  }
+    "no-unused-vars": "warn",
+    "no-undef": "off"
+  },
+  "ignorePatterns": ["extension/dist"]
 }
