@@ -3,6 +3,9 @@ import { User, ParsedPreferences } from './types';
 /**
  * Simple in-memory user database
  * In production, this would be replaced with a real database (DynamoDB, PostgreSQL, etc.)
+ * 
+ * INTEGRATION READY: This class interface supports database backends
+ * To add persistence, replace internal Map with database client calls
  */
 export class UserDatabase {
   private users: Map<string, User> = new Map();

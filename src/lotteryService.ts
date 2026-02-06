@@ -114,6 +114,12 @@ export class LotteryService {
         console.log(`Processing user: ${user.email}`);
         const results = await this.applyForUser(user.id);
         resultsByUser.set(user.id, results);
+        
+        // TODO: Add email notification integration here
+        // await this.notifyUser(user, results);
+        
+        // TODO: Store results in persistent database
+        // await this.saveLotteryResults(user.id, results);
       } catch (error) {
         console.error(`Error processing user ${user.email}:`, error);
         resultsByUser.set(user.id, []);
