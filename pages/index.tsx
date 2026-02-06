@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import type { ShowWithPreference } from '../src/types';
 import styles from '../styles/Dashboard.module.css';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [userId, setUserId] = useState('demo-user-1');
   const [preferences, setPreferences] = useState('');
   const [shows, setShows] = useState<ShowWithPreference[]>([]);
@@ -165,6 +167,12 @@ export default function Dashboard() {
       <header className={styles.header}>
         <h1>Broadway Lottery Dashboard</h1>
         <p>Manage your show preferences and lottery applications</p>
+        <button 
+          onClick={() => router.push('/credentials')} 
+          className={styles.credentialsLink}
+        >
+          🔑 Manage Platform Credentials
+        </button>
       </header>
 
       {!hasOpenAI && (
